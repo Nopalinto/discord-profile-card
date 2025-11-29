@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
 import { EntryFadeOverlay } from '@/components/EntryFadeOverlay';
+import { Analytics } from '@vercel/analytics/react';
 
 export const metadata: Metadata = {
   title: 'Discord Profile Card Generator',
@@ -17,6 +18,7 @@ export default function RootLayout({
       <body>
         <EntryFadeOverlay />
         {children}
+        <Analytics />
       </body>
     </html>
   );
