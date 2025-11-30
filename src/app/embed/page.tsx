@@ -61,6 +61,7 @@ export async function generateMetadata({ searchParams }: EmbedPageProps): Promis
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://discord-card-generator.vercel.app';
     const embedUrl = `${siteUrl}/embed?id=${userId}`;
+    const ogImageUrl = `${siteUrl}/api/og?id=${userId}`;
     
     return {
       title: `${displayName}'s Discord Profile`,
@@ -72,10 +73,10 @@ export async function generateMetadata({ searchParams }: EmbedPageProps): Promis
         url: embedUrl,
         images: [
           {
-            url: avatarUrl,
-            width: 512,
-            height: 512,
-            alt: `${displayName}'s avatar`,
+            url: ogImageUrl,
+            width: 1200,
+            height: 630,
+            alt: `${displayName}'s Discord Profile Card`,
           },
         ],
         siteName: 'Discord Profile Card Generator',
@@ -84,7 +85,7 @@ export async function generateMetadata({ searchParams }: EmbedPageProps): Promis
         card: 'summary_large_image',
         title: `${displayName}'s Discord Profile`,
         description,
-        images: [avatarUrl],
+        images: [ogImageUrl],
       },
     };
   } catch (error) {
