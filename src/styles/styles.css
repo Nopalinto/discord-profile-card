@@ -228,6 +228,11 @@ background-position: center;
 background-repeat: no-repeat;
 }
 
+/* Hide any text content in the banner (except status badge) */
+.profile-banner > *:not(.status-badge):not(.banner-overlay) {
+display: none !important;
+}
+
 .banner-overlay {
 position: absolute;
 inset: 0;
