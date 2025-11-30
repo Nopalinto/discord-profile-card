@@ -5,7 +5,8 @@ import { fetchDstnData } from '@/lib/api/dstn';
 import { getDisplayName, getAvatarUrl, getBannerUrl, getStatus, extractBadges } from '@/lib/utils/profile';
 import { isValidDiscordId } from '@/lib/utils/validation';
 
-export const runtime = 'edge';
+// Use Node.js runtime for better compatibility with API calls
+// export const runtime = 'edge';
 
 const DEFAULT_USER_ID = '915480322328649758';
 
@@ -60,79 +61,52 @@ export async function GET(request: NextRequest) {
           }}
         >
           {/* Banner */}
-          {bannerUrl ? (
+          <div
+            style={{
+              width: '100%',
+              height: '200px',
+              background: bannerUrl ? 'transparent' : 'linear-gradient(135deg, #5865F2 0%, #7289DA 100%)',
+              position: 'relative',
+            }}
+          >
+            {bannerUrl && (
+              <img
+                src={bannerUrl}
+                width={1200}
+                height={200}
+                style={{
+                  objectFit: 'cover',
+                  width: '100%',
+                  height: '200px',
+                }}
+              />
+            )}
             <div
               style={{
-                width: '100%',
-                height: '200px',
-                backgroundImage: `url(${bannerUrl})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                position: 'relative',
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                background: 'rgba(0, 0, 0, 0.6)',
+                borderRadius: '12px',
+                color: '#fff',
+                fontSize: '14px',
               }}
             >
               <div
                 style={{
-                  position: 'absolute',
-                  top: '16px',
-                  right: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '6px 12px',
-                  background: 'rgba(0, 0, 0, 0.6)',
-                  borderRadius: '12px',
-                  color: '#fff',
-                  fontSize: '14px',
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '50%',
+                  background: statusColor,
                 }}
-              >
-                <div
-                  style={{
-                    width: '12px',
-                    height: '12px',
-                    borderRadius: '50%',
-                    background: statusColor,
-                  }}
-                />
-                <span style={{ textTransform: 'capitalize' }}>{status}</span>
-              </div>
+              />
+              <span style={{ textTransform: 'capitalize' }}>{status}</span>
             </div>
-          ) : (
-            <div
-              style={{
-                width: '100%',
-                height: '200px',
-                background: 'linear-gradient(135deg, #5865F2 0%, #7289DA 100%)',
-                position: 'relative',
-              }}
-            >
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '16px',
-                  right: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '6px 12px',
-                  background: 'rgba(0, 0, 0, 0.6)',
-                  borderRadius: '12px',
-                  color: '#fff',
-                  fontSize: '14px',
-                }}
-              >
-                <div
-                  style={{
-                    width: '12px',
-                    height: '12px',
-                    borderRadius: '50%',
-                    background: statusColor,
-                  }}
-                />
-                <span style={{ textTransform: 'capitalize' }}>{status}</span>
-              </div>
-            </div>
-          )}
+          </div>
 
           {/* Profile Content */}
           <div
@@ -290,7 +264,33 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error('OG image generation error:', error);
-    return new Response('Failed to generate image', { status: 500 });
+    // Return a simple error image instead of failing completely
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#2f3136',
+            color: '#fff',
+            fontSize: '24px',
+          }}
+        >
+          <div>Discord Profile Card</div>
+          <div style={{ fontSize: '16px', marginTop: '16px', color: '#B9BBBE' }}>
+            Failed to load profile
+          </div>
+        </div>
+      ),
+      {
+        width: 1200,
+        height: 630,
+      }
+    );
   }
 }
 
