@@ -28,9 +28,9 @@ jobs:
 
       - name: Check build output
         run: |
-          if [ ! -d "out" ]; then
-            echo "Build output directory 'out' not found!"
+          if [ ! -d ".next" ]; then
+            echo "Build output directory '.next' not found!"
             exit 1
           fi
-          echo "Build successful! Output directory exists."
+          echo "Build successful! Next.js build output exists."
 
