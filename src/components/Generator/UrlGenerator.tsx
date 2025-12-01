@@ -24,7 +24,7 @@ export function UrlGenerator({ userId, params }: UrlGeneratorProps) {
     : '';
 
   const markdownUrl = `[![Discord Profile](${baseUrl})](https://discord.com/users/${userId})`;
-  const htmlUrl = `<iframe src="${baseUrl}" width="380" height="600" frameborder="0" allowtransparency="true" loading="lazy" title="Discord Profile Card"></iframe>`;
+  const htmlUrl = `<iframe src="${baseUrl}" width="380" height="405" frameborder="0" allowtransparency="true" loading="lazy" title="Discord Profile Card"></iframe>`;
 
   const copyToClipboard = async (text: string, type: string) => {
     try {
