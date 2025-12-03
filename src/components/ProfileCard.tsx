@@ -404,6 +404,11 @@ export function ProfileCard({ lanyard, dstn, lantern, params }: ProfileCardProps
   // Store last known activities and spotify when online/idle/dnd
   const lastKnownActivitiesRef = useRef<LanyardActivity[] | null>(null);
   const lastKnownSpotifyRef = useRef<LanyardSpotify | null>(null);
+  
+  // Get user ID for localStorage keys
+  const userId = user?.id || dstnUser?.id || null;
+  const activitiesStorageKey = userId ? `discord-last-activities-${userId}` : null;
+  const spotifyStorageKey = userId ? `discord-last-spotify-${userId}` : null;
 
   const avatarUrl = useMemo(() => getAvatarUrl(user, dstnUser), [user, dstnUser]);
   const displayName = useMemo(() => getDisplayName(user, dstnUser), [user, dstnUser]);
@@ -563,22 +568,92 @@ export function ProfileCard({ lanyard, dstn, lantern, params }: ProfileCardProps
     return `linear-gradient(${mainRgb} 0%, ${light1Rgb} 50%, ${light2Rgb} 100%)`;
   }, [params?.displayNameEffect, displayNameColorVariants]);
 
-  // Store last known activities when online/idle/dnd
+  // Load last known activities and Spotify from localStorage on mount
+  useEffect(() => {
+    if (typeof window === 'undefined' || !activitiesStorageKey || !spotifyStorageKey) return;
+    
+    try {
+      const storedActivities = localStorage.getItem(activitiesStorageKey);
+      const storedSpotify = localStorage.getItem(spotifyStorageKey);
+      
+      if (storedActivities) {
+        const parsed = JSON.parse(storedActivities);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          lastKnownActivitiesRef.current = parsed;
+        }
+      }
+      
+      if (storedSpotify) {
+        const parsed = JSON.parse(storedSpotify);
+        if (parsed && typeof parsed === 'object') {
+          lastKnownSpotifyRef.current = parsed;
+        }
+      }
+    } catch (error) {
+      // Silently fail if localStorage is unavailable or data is corrupted
+      console.warn('Failed to load last known activities from localStorage:', error);
+    }
+  }, [activitiesStorageKey, spotifyStorageKey]);
+
+  // Store last known activities when online/idle/dnd (both in refs and localStorage)
   useEffect(() => {
     if (status !== 'offline' && lanyard?.activities && lanyard.activities.length > 0) {
       lastKnownActivitiesRef.current = lanyard.activities;
+      
+      // Persist to localStorage
+      if (typeof window !== 'undefined' && activitiesStorageKey) {
+        try {
+          localStorage.setItem(activitiesStorageKey, JSON.stringify(lanyard.activities));
+        } catch (error) {
+          // Silently fail if localStorage is unavailable
+          console.warn('Failed to save activities to localStorage:', error);
+        }
+      }
     }
+    
     if (status !== 'offline' && lanyard?.spotify) {
       lastKnownSpotifyRef.current = lanyard.spotify;
+      
+      // Persist to localStorage
+      if (typeof window !== 'undefined' && spotifyStorageKey) {
+        try {
+          localStorage.setItem(spotifyStorageKey, JSON.stringify(lanyard.spotify));
+        } catch (error) {
+          // Silently fail if localStorage is unavailable
+          console.warn('Failed to save Spotify to localStorage:', error);
+        }
+      }
     }
-  }, [status, lanyard?.activities, lanyard?.spotify]);
+  }, [status, lanyard?.activities, lanyard?.spotify, activitiesStorageKey, spotifyStorageKey]);
 
   // Get activities (non-listening, non-custom status)
   // Use last known activities when offline, current activities when online
   const activities = useMemo(() => {
-    const activitiesToUse = status === 'offline' 
-      ? (lastKnownActivitiesRef.current || lanyard?.activities || [])
-      : (lanyard?.activities || []);
+    let activitiesToUse: LanyardActivity[] = [];
+    
+    if (status === 'offline') {
+      // When offline, prefer refs (which may have been loaded from localStorage)
+      activitiesToUse = lastKnownActivitiesRef.current || lanyard?.activities || [];
+      
+      // If still empty, try loading from localStorage as fallback
+      if (activitiesToUse.length === 0 && typeof window !== 'undefined' && activitiesStorageKey) {
+        try {
+          const stored = localStorage.getItem(activitiesStorageKey);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              activitiesToUse = parsed;
+              lastKnownActivitiesRef.current = parsed; // Update ref for consistency
+            }
+          }
+        } catch (error) {
+          // Silently fail
+        }
+      }
+    } else {
+      // When online, use current activities
+      activitiesToUse = lanyard?.activities || [];
+    }
     
     if (!activitiesToUse || activitiesToUse.length === 0) return [];
     let filtered = activitiesToUse.filter(a => a.type !== 4 && a.type !== 2);
@@ -590,14 +665,36 @@ export function ProfileCard({ lanyard, dstn, lantern, params }: ProfileCardProps
       });
     }
     return filtered;
-  }, [lanyard, params?.hideAppId, status]);
+  }, [lanyard, params?.hideAppId, status, activitiesStorageKey]);
 
   // Get listening activities
   // Use last known activities when offline, current activities when online
   const listeningActivities = useMemo(() => {
-    const activitiesToUse = status === 'offline'
-      ? (lastKnownActivitiesRef.current || lanyard?.activities || [])
-      : (lanyard?.activities || []);
+    let activitiesToUse: LanyardActivity[] = [];
+    
+    if (status === 'offline') {
+      // When offline, prefer refs (which may have been loaded from localStorage)
+      activitiesToUse = lastKnownActivitiesRef.current || lanyard?.activities || [];
+      
+      // If still empty, try loading from localStorage as fallback
+      if (activitiesToUse.length === 0 && typeof window !== 'undefined' && activitiesStorageKey) {
+        try {
+          const stored = localStorage.getItem(activitiesStorageKey);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              activitiesToUse = parsed;
+              lastKnownActivitiesRef.current = parsed; // Update ref for consistency
+            }
+          }
+        } catch (error) {
+          // Silently fail
+        }
+      }
+    } else {
+      // When online, use current activities
+      activitiesToUse = lanyard?.activities || [];
+    }
     
     if (!activitiesToUse || activitiesToUse.length === 0) return [];
     let filtered = activitiesToUse.filter(a => a.type === 2);
@@ -609,12 +706,36 @@ export function ProfileCard({ lanyard, dstn, lantern, params }: ProfileCardProps
       });
     }
     return filtered;
-  }, [lanyard, params?.hideAppId, status]);
+  }, [lanyard, params?.hideAppId, status, activitiesStorageKey]);
 
   // Use last known spotify when offline, current spotify when online
-  const spotify = status === 'offline' 
-    ? (lastKnownSpotifyRef.current || lanyard?.spotify || null)
-    : (lanyard?.spotify || null);
+  const spotify = useMemo(() => {
+    if (status === 'offline') {
+      // When offline, prefer refs (which may have been loaded from localStorage)
+      let spotifyData = lastKnownSpotifyRef.current || lanyard?.spotify || null;
+      
+      // If still null, try loading from localStorage as fallback
+      if (!spotifyData && typeof window !== 'undefined' && spotifyStorageKey) {
+        try {
+          const stored = localStorage.getItem(spotifyStorageKey);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed && typeof parsed === 'object') {
+              spotifyData = parsed;
+              lastKnownSpotifyRef.current = parsed; // Update ref for consistency
+            }
+          }
+        } catch (error) {
+          // Silently fail
+        }
+      }
+      
+      return spotifyData;
+    } else {
+      // When online, use current Spotify
+      return lanyard?.spotify || null;
+    }
+  }, [status, lanyard?.spotify, spotifyStorageKey]);
 
   // Apply theme colors if default scheme
   useEffect(() => {
