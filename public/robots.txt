@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /embed
+Allow: /api/og
+
+# Disallow API routes that shouldn't be indexed
+Disallow: /api/activities
+
+# Sitemap
+Sitemap: https://discord-card.nopalinto.dev/sitemap.xml
+
