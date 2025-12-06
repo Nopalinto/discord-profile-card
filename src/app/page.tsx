@@ -39,46 +39,48 @@ function HomePageContent() {
   // Note: API key is stored server-side but not loaded to client for security
   // Users must re-enter their API key if they want to use it
 
-  // Dispatch event immediately when API key changes (for instant refresh)
+  // Save API key to server and dispatch event after successful save
   useEffect(() => {
     if (typeof window === 'undefined' || !userId || !isValidDiscordId(userId)) {
       return;
     }
 
-    // Dispatch event immediately when API key changes to trigger instant refresh
-    const eventDetail = { detail: { userId } };
-    if (!rawgApiKey || rawgApiKey.trim() === '') {
-      window.dispatchEvent(new CustomEvent('rawg-api-key-removed', eventDetail));
-    } else {
-      window.dispatchEvent(new CustomEvent('rawg-api-key-updated', eventDetail));
-    }
-  }, [rawgApiKey, userId]);
-
-  // Save API key to server when it changes (debounced to avoid too many requests)
-  useEffect(() => {
-    if (typeof window === 'undefined' || !userId || !isValidDiscordId(userId)) {
-      return;
-    }
-
-    // Debounce saves to avoid too many requests
-    const timeoutId = setTimeout(() => {
-      fetch('/api/rawg-key', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          apiKey: rawgApiKey,
-        }),
-      }).catch(error => {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Failed to save RAWG API key to server:', error);
+    // Save immediately (no debounce) to ensure Redis has the key before fetching
+    fetch('/api/rawg-key', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId,
+        apiKey: rawgApiKey,
+      }),
+    }).then(async (response) => {
+      // Only dispatch event if the request was successful
+      if (!response.ok) {
+        return;
+      }
+      
+      const data = await response.json();
+      if (!data.success) {
+        return;
+      }
+      
+      // Dispatch event after successful save to trigger image refresh
+      // Small delay to ensure Redis has fully processed the update
+      setTimeout(() => {
+        const eventDetail = { detail: { userId } };
+        if (!rawgApiKey || rawgApiKey.trim() === '') {
+          window.dispatchEvent(new CustomEvent('rawg-api-key-removed', eventDetail));
+        } else {
+          window.dispatchEvent(new CustomEvent('rawg-api-key-updated', eventDetail));
         }
-      });
-    }, 1000); // 1 second debounce for saving
-
-    return () => clearTimeout(timeoutId);
+      }, 200); // 200ms delay to ensure Redis persistence
+    }).catch(error => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to save RAWG API key to server:', error);
+      }
+    });
   }, [rawgApiKey, userId]);
   
   // Initialize display options from URL params
