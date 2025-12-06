@@ -33,11 +33,42 @@ function HomePageContent() {
     return parsedUrlParams.id || DEFAULT_USER_ID;
   });
   
-  // Store RAWG API key on server (associated with userId)
-  const [rawgApiKey, setRawgApiKey] = useState('');
+  // Store RAWG API key in localStorage (for persistence) and server (for server-side use)
+  const [rawgApiKey, setRawgApiKey] = useState(() => {
+    // Load from localStorage on initial render
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`rawg-api-key-${userId}`);
+      return stored || '';
+    }
+    return '';
+  });
 
-  // Note: API key is stored server-side but not loaded to client for security
-  // Users must re-enter their API key if they want to use it
+  // Load API key from localStorage when userId changes
+  useEffect(() => {
+    if (typeof window === 'undefined' || !userId) {
+      return;
+    }
+    
+    const stored = localStorage.getItem(`rawg-api-key-${userId}`);
+    if (stored) {
+      setRawgApiKey(stored);
+    } else {
+      setRawgApiKey('');
+    }
+  }, [userId]);
+
+  // Save API key to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window === 'undefined' || !userId) {
+      return;
+    }
+    
+    if (rawgApiKey && rawgApiKey.trim() !== '') {
+      localStorage.setItem(`rawg-api-key-${userId}`, rawgApiKey);
+    } else {
+      localStorage.removeItem(`rawg-api-key-${userId}`);
+    }
+  }, [rawgApiKey, userId]);
 
   // Save API key to server and dispatch event after successful save
   useEffect(() => {
