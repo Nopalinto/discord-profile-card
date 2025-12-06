@@ -101,8 +101,8 @@ export function useRawgGame(activityName: string | undefined, userId: string | u
       return;
     }
 
-    // Determine debounce delay: faster if triggered by API key change, normal otherwise
-    const debounceDelay = refreshTrigger > 0 ? 100 : 500;
+    // Determine debounce delay: instant if triggered by API key change, normal otherwise
+    const debounceDelay = refreshTrigger > 0 ? 0 : 500;
 
     // Debounce: wait before making request (reduces requests when switching games quickly)
     debounceTimerRef.current = setTimeout(() => {

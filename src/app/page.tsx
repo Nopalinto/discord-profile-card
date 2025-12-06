@@ -39,7 +39,22 @@ function HomePageContent() {
   // Note: API key is stored server-side but not loaded to client for security
   // Users must re-enter their API key if they want to use it
 
-  // Save API key to server when it changes
+  // Dispatch event immediately when API key changes (for instant refresh)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !userId || !isValidDiscordId(userId)) {
+      return;
+    }
+
+    // Dispatch event immediately when API key changes to trigger instant refresh
+    const eventDetail = { detail: { userId } };
+    if (!rawgApiKey || rawgApiKey.trim() === '') {
+      window.dispatchEvent(new CustomEvent('rawg-api-key-removed', eventDetail));
+    } else {
+      window.dispatchEvent(new CustomEvent('rawg-api-key-updated', eventDetail));
+    }
+  }, [rawgApiKey, userId]);
+
+  // Save API key to server when it changes (debounced to avoid too many requests)
   useEffect(() => {
     if (typeof window === 'undefined' || !userId || !isValidDiscordId(userId)) {
       return;
@@ -56,33 +71,12 @@ function HomePageContent() {
           userId,
           apiKey: rawgApiKey,
         }),
-      }).then(async (response) => {
-        // Only dispatch event if the request was successful
-        if (!response.ok) {
-          return;
-        }
-        
-        const data = await response.json();
-        if (!data.success) {
-          return;
-        }
-        
-        // Dispatch event when API key is updated or removed to trigger image refresh
-        // Add a small delay to ensure Redis has processed the update
-        setTimeout(() => {
-          const eventDetail = { detail: { userId } };
-          if (!rawgApiKey || rawgApiKey.trim() === '') {
-            window.dispatchEvent(new CustomEvent('rawg-api-key-removed', eventDetail));
-          } else {
-            window.dispatchEvent(new CustomEvent('rawg-api-key-updated', eventDetail));
-          }
-        }, 500); // 500ms delay to ensure Redis persistence
       }).catch(error => {
         if (process.env.NODE_ENV === 'development') {
           console.warn('Failed to save RAWG API key to server:', error);
         }
       });
-    }, 1000); // 1 second debounce
+    }, 1000); // 1 second debounce for saving
 
     return () => clearTimeout(timeoutId);
   }, [rawgApiKey, userId]);
