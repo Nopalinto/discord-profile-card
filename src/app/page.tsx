@@ -35,36 +35,9 @@ function HomePageContent() {
   
   // Store RAWG API key on server (associated with userId)
   const [rawgApiKey, setRawgApiKey] = useState('');
-  const currentUserIdRef = useRef(userId);
 
-  // Load RAWG API key from server when userId is available
-  useEffect(() => {
-    if (typeof window === 'undefined' || !userId || !isValidDiscordId(userId)) {
-      setRawgApiKey('');
-      return;
-    }
-
-    // Only fetch if userId changed
-    if (currentUserIdRef.current === userId && rawgApiKey) {
-      return;
-    }
-
-    currentUserIdRef.current = userId;
-
-    // Fetch stored API key from server
-    fetch(`/api/rawg-key?userId=${userId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.apiKey) {
-          setRawgApiKey(data.apiKey);
-        }
-      })
-      .catch(error => {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Failed to load RAWG API key from server:', error);
-        }
-      });
-  }, [userId]);
+  // Note: API key is stored server-side but not loaded to client for security
+  // Users must re-enter their API key if they want to use it
 
   // Save API key to server when it changes
   useEffect(() => {
