@@ -10,7 +10,7 @@ import styles from './page.module.css';
 const DEFAULT_USER_ID = '915480322328649758';
 
 interface EmbedPageProps {
-  searchParams: Promise<{ id?: string }> | { id?: string };
+  searchParams: Promise<{ id?: string }>;
 }
 
 export async function generateMetadata({ searchParams }: EmbedPageProps): Promise<Metadata> {

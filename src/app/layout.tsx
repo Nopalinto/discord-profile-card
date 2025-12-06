@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Discord Profile Card Generator',
+  title: 'Discord Profile Card Generator',
     description: 'Generate beautiful Discord profile cards with real-time status, activities, and Spotify integration.',
     images: [`${siteUrl}/api/og`],
   },
