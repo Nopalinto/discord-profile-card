@@ -15,7 +15,8 @@ interface ActivityData {
 const MAX_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days - activities persist for a long time
 
 // Cache staleness threshold - if data is older than this, fetch fresh data from Lanyard
-const CACHE_STALE_THRESHOLD = 10 * 60 * 1000; // 10 minutes - fetch fresh data if cache is older
+// Note: We now always fetch fresh data, but use this to determine if we should wait for it
+const CACHE_STALE_THRESHOLD = 2 * 60 * 1000; // 2 minutes - if cache is very fresh, we can return it immediately while fetching fresh in background
 
 // Helper function to get Redis key for a user
 function getKey(userId: string): string {
@@ -95,51 +96,31 @@ export async function GET(request: NextRequest) {
     }
 
     const now = Date.now();
-    let shouldFetchFresh = false;
     let cachedData: ActivityData | null = null;
 
-    // Try to get from Redis
+    // Try to get from Redis first (for fallback)
     try {
       const client = await getRedisClient();
       const key = getKey(userId);
       const storedJson = await client.get(key);
       
-      if (!storedJson) {
-        // No cached data, fetch fresh from Lanyard
-        shouldFetchFresh = true;
-      } else {
+      if (storedJson) {
         const parsed = JSON.parse(storedJson) as ActivityData;
         
         // Validate parsed data structure
         if (parsed && typeof parsed.updatedAt === 'number') {
-          cachedData = parsed;
-
           // Check if data is expired (older than MAX_AGE)
-          if (now - cachedData.updatedAt > MAX_AGE) {
-            // Data expired, delete it and fetch fresh
+          if (now - parsed.updatedAt <= MAX_AGE) {
+            cachedData = parsed;
+          } else {
+            // Data expired, delete it
             await client.del(key);
-            cachedData = null;
-            shouldFetchFresh = true;
-          } else if (now - cachedData.updatedAt > CACHE_STALE_THRESHOLD) {
-            // Cache is stale (older than threshold), fetch fresh data
-            shouldFetchFresh = true;
           }
-        } else {
-          // Invalid data structure, fetch fresh
-          shouldFetchFresh = true;
         }
       }
 
-      // If cache is fresh, return it immediately
-      if (!shouldFetchFresh && cachedData) {
-        return NextResponse.json({
-          activities: cachedData.activities,
-          spotify: cachedData.spotify,
-          updatedAt: cachedData.updatedAt,
-        });
-      }
-
-      // Fetch fresh data from Lanyard API
+      // ALWAYS fetch fresh data from Lanyard API first
+      // This ensures we get the latest activities even if user was online and no one accessed the website
       try {
         const lanyardData = await fetchLanyardData(userId, true); // bypassCache = true to get fresh data
         
@@ -147,23 +128,58 @@ export async function GET(request: NextRequest) {
           const freshActivities = lanyardData.activities || [];
           const freshSpotify = lanyardData.spotify || null;
           
-          // Update cache with fresh data
-          const freshData: ActivityData = {
-            activities: freshActivities,
-            spotify: freshSpotify,
-            updatedAt: now,
-          };
-          
-          const ttlSeconds = Math.floor(MAX_AGE / 1000);
-          await client.setEx(key, ttlSeconds, JSON.stringify(freshData));
-          
-          return NextResponse.json({
-            activities: freshActivities,
-            spotify: freshSpotify,
-            updatedAt: now,
-          });
+          // Always prefer fresh data from Lanyard if it has activities
+          // This ensures we get the latest activities even if user was online and no one accessed the website
+          if (freshActivities.length > 0 || freshSpotify) {
+            // We have fresh data with activities, use it and update cache
+            const freshData: ActivityData = {
+              activities: freshActivities,
+              spotify: freshSpotify,
+              updatedAt: now,
+            };
+            
+            // Update cache with fresh data
+            const ttlSeconds = Math.floor(MAX_AGE / 1000);
+            await client.setEx(key, ttlSeconds, JSON.stringify(freshData));
+            
+            return NextResponse.json({
+              activities: freshActivities,
+              spotify: freshSpotify,
+              updatedAt: now,
+            });
+          } else {
+            // Lanyard returned data but no activities (user is offline and Lanyard cleared activities)
+            // Check if we have cached data that might be more recent
+            // If cache was updated recently (within last 30 minutes), it might have the last known activity
+            if (cachedData && cachedData.activities.length > 0) {
+              const cacheAge = now - cachedData.updatedAt;
+              // Use cached data if it's recent (within 30 minutes) - user might have just gone offline
+              if (cacheAge < 30 * 60 * 1000) { // 30 minutes
+                return NextResponse.json({
+                  activities: cachedData.activities,
+                  spotify: cachedData.spotify,
+                  updatedAt: cachedData.updatedAt,
+                });
+              }
+              // Cache is old, but we should still update it with current timestamp
+              // to indicate we checked, even though there are no current activities
+              const emptyData: ActivityData = {
+                activities: [],
+                spotify: null,
+                updatedAt: now,
+              };
+              const ttlSeconds = Math.floor(MAX_AGE / 1000);
+              await client.setEx(key, ttlSeconds, JSON.stringify(emptyData));
+            }
+            // No activities in fresh data and cache is old or empty, return empty
+            return NextResponse.json({
+              activities: [],
+              spotify: null,
+              updatedAt: now,
+            });
+          }
         } else {
-          // Lanyard API failed, return cached data if available, otherwise null
+          // Lanyard API failed or returned no data, use cached data if available
           if (cachedData) {
             return NextResponse.json({
               activities: cachedData.activities,
