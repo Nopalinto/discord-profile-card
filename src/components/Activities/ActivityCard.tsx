@@ -102,7 +102,6 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
         <div className="activity-content">
           <div className="activity-image">
             <img 
-              key={largeUrl} // Force re-render when URL changes
               data-aid={aid}
               alt={escapeHtml(bigTip) || 'Activity image'} 
               src={sanitizeExternalURL(largeUrl)} 

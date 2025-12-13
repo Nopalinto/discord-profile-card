@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from 'redis';
 import type { LanyardActivity, LanyardSpotify } from '@/lib/types/lanyard';
 import { isValidDiscordId } from '@/lib/utils/validation';
+import { fetchLanyardData } from '@/lib/api/lanyard';
 
 // Activity data structure stored in Redis
 interface ActivityData {
@@ -12,6 +13,9 @@ interface ActivityData {
 
 // Clean up old entries (older than 90 days)
 const MAX_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days - activities persist for a long time
+
+// Cache staleness threshold - if data is older than this, fetch fresh data from Lanyard
+const CACHE_STALE_THRESHOLD = 10 * 60 * 1000; // 10 minutes - fetch fresh data if cache is older
 
 // Helper function to get Redis key for a user
 function getKey(userId: string): string {
@@ -77,6 +81,7 @@ async function getRedisClient() {
 }
 
 // GET: Retrieve stored activities for a user
+// If cache is stale, fetch fresh data from Lanyard API
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -89,6 +94,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const now = Date.now();
+    let shouldFetchFresh = false;
+    let cachedData: ActivityData | null = null;
+
     // Try to get from Redis
     try {
       const client = await getRedisClient();
@@ -96,33 +105,101 @@ export async function GET(request: NextRequest) {
       const storedJson = await client.get(key);
       
       if (!storedJson) {
+        // No cached data, fetch fresh from Lanyard
+        shouldFetchFresh = true;
+      } else {
+        cachedData = JSON.parse(storedJson);
+
+        // Check if data is expired (older than MAX_AGE)
+        if (now - cachedData.updatedAt > MAX_AGE) {
+          // Data expired, delete it and fetch fresh
+          await client.del(key);
+          cachedData = null;
+          shouldFetchFresh = true;
+        } else if (now - cachedData.updatedAt > CACHE_STALE_THRESHOLD) {
+          // Cache is stale (older than threshold), fetch fresh data
+          shouldFetchFresh = true;
+        }
+      }
+
+      // If cache is fresh, return it immediately
+      if (!shouldFetchFresh && cachedData) {
+        return NextResponse.json({
+          activities: cachedData.activities,
+          spotify: cachedData.spotify,
+          updatedAt: cachedData.updatedAt,
+        });
+      }
+
+      // Fetch fresh data from Lanyard API
+      try {
+        const lanyardData = await fetchLanyardData(userId, true); // bypassCache = true to get fresh data
+        
+        if (lanyardData) {
+          const freshActivities = lanyardData.activities || [];
+          const freshSpotify = lanyardData.spotify || null;
+          
+          // Update cache with fresh data
+          const freshData: ActivityData = {
+            activities: freshActivities,
+            spotify: freshSpotify,
+            updatedAt: now,
+          };
+          
+          const ttlSeconds = Math.floor(MAX_AGE / 1000);
+          await client.setEx(key, ttlSeconds, JSON.stringify(freshData));
+          
+          return NextResponse.json({
+            activities: freshActivities,
+            spotify: freshSpotify,
+            updatedAt: now,
+          });
+        } else {
+          // Lanyard API failed, return cached data if available, otherwise null
+          if (cachedData) {
+            return NextResponse.json({
+              activities: cachedData.activities,
+              spotify: cachedData.spotify,
+              updatedAt: cachedData.updatedAt,
+            });
+          }
+          return NextResponse.json({
+            activities: null,
+            spotify: null,
+          });
+        }
+      } catch (lanyardError) {
+        // If Lanyard fetch fails, return cached data if available
+        console.warn('Failed to fetch fresh data from Lanyard:', lanyardError);
+        if (cachedData) {
+          return NextResponse.json({
+            activities: cachedData.activities,
+            spotify: cachedData.spotify,
+            updatedAt: cachedData.updatedAt,
+          });
+        }
         return NextResponse.json({
           activities: null,
           spotify: null,
         });
       }
-
-      const stored: ActivityData = JSON.parse(storedJson);
-
-      // Check if data is expired (older than MAX_AGE)
-      const now = Date.now();
-      if (now - stored.updatedAt > MAX_AGE) {
-        // Data expired, delete it
-        await client.del(key);
-        return NextResponse.json({
-          activities: null,
-          spotify: null,
-        });
-      }
-
-      return NextResponse.json({
-        activities: stored.activities,
-        spotify: stored.spotify,
-        updatedAt: stored.updatedAt,
-      });
     } catch (redisError) {
-      // If Redis is not configured, return null (graceful degradation)
+      // If Redis is not configured, try to fetch from Lanyard directly
       console.warn('Redis not configured or error:', redisError);
+      
+      try {
+        const lanyardData = await fetchLanyardData(userId, true);
+        if (lanyardData) {
+          return NextResponse.json({
+            activities: lanyardData.activities || null,
+            spotify: lanyardData.spotify || null,
+            updatedAt: now,
+          });
+        }
+      } catch (lanyardError) {
+        console.warn('Failed to fetch from Lanyard:', lanyardError);
+      }
+      
       return NextResponse.json({
         activities: null,
         spotify: null,

@@ -33,85 +33,64 @@ function HomePageContent() {
     return parsedUrlParams.id || DEFAULT_USER_ID;
   });
   
-  // Store RAWG API key in localStorage (for persistence) and server (for server-side use)
-  const [rawgApiKey, setRawgApiKey] = useState(() => {
-    // Load from localStorage on initial render
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(`rawg-api-key-${userId}`);
-      return stored || '';
-    }
-    return '';
-  });
+  // Store RAWG API key on server (associated with userId)
+  const [rawgApiKey, setRawgApiKey] = useState('');
+  const currentUserIdRef = useRef(userId);
 
-  // Load API key from localStorage when userId changes
+  // Load RAWG API key from server when userId is available
   useEffect(() => {
-    if (typeof window === 'undefined' || !userId) {
+    if (typeof window === 'undefined' || !userId || !isValidDiscordId(userId)) {
+      setRawgApiKey('');
       return;
     }
-    
-    const stored = localStorage.getItem(`rawg-api-key-${userId}`);
-    if (stored) {
-      setRawgApiKey(stored);
-    } else {
-      setRawgApiKey('');
+
+    // Only fetch if userId changed
+    if (currentUserIdRef.current === userId && rawgApiKey) {
+      return;
     }
+
+    currentUserIdRef.current = userId;
+
+    // Fetch stored API key from server
+    fetch(`/api/rawg-key?userId=${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.apiKey) {
+          setRawgApiKey(data.apiKey);
+        }
+      })
+      .catch(error => {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to load RAWG API key from server:', error);
+        }
+      });
   }, [userId]);
 
-  // Save API key to localStorage whenever it changes
-  useEffect(() => {
-    if (typeof window === 'undefined' || !userId) {
-      return;
-    }
-    
-    if (rawgApiKey && rawgApiKey.trim() !== '') {
-      localStorage.setItem(`rawg-api-key-${userId}`, rawgApiKey);
-    } else {
-      localStorage.removeItem(`rawg-api-key-${userId}`);
-    }
-  }, [rawgApiKey, userId]);
-
-  // Save API key to server and dispatch event after successful save
+  // Save API key to server when it changes
   useEffect(() => {
     if (typeof window === 'undefined' || !userId || !isValidDiscordId(userId)) {
       return;
     }
 
-    // Save immediately (no debounce) to ensure Redis has the key before fetching
-    fetch('/api/rawg-key', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userId,
-        apiKey: rawgApiKey,
-      }),
-    }).then(async (response) => {
-      // Only dispatch event if the request was successful
-      if (!response.ok) {
-        return;
-      }
-      
-      const data = await response.json();
-      if (!data.success) {
-        return;
-      }
-      
-      // Dispatch event after successful save to trigger image refresh
-      // Small delay to ensure Redis has fully processed the update
-      setTimeout(() => {
-        const eventDetail = { detail: { userId } };
-        if (!rawgApiKey || rawgApiKey.trim() === '') {
-          window.dispatchEvent(new CustomEvent('rawg-api-key-removed', eventDetail));
-        } else {
-          window.dispatchEvent(new CustomEvent('rawg-api-key-updated', eventDetail));
+    // Debounce saves to avoid too many requests
+    const timeoutId = setTimeout(() => {
+      fetch('/api/rawg-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          apiKey: rawgApiKey,
+        }),
+      }).catch(error => {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to save RAWG API key to server:', error);
         }
-      }, 200); // 200ms delay to ensure Redis persistence
-    }).catch(error => {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Failed to save RAWG API key to server:', error);
-      }
-    });
+      });
+    }, 1000); // 1 second debounce
+
+    return () => clearTimeout(timeoutId);
   }, [rawgApiKey, userId]);
   
   // Initialize display options from URL params

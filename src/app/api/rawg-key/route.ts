@@ -59,13 +59,46 @@ async function getRedisClient() {
   }
 }
 
-// GET: Removed for security - API keys should never be exposed to clients
-// The API key is only used server-side via /api/rawg-game endpoint
+// GET: Retrieve stored RAWG API key for a user
 export async function GET(request: NextRequest) {
-  return NextResponse.json(
-    { error: 'This endpoint is not available for security reasons' },
-    { status: 403 }
-  );
+  try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId || !isValidDiscordId(userId)) {
+      return NextResponse.json(
+        { error: 'Invalid or missing userId' },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const client = await getRedisClient();
+      const key = getKey(userId);
+      const apiKey = await client.get(key);
+      
+      if (!apiKey) {
+        return NextResponse.json({
+          apiKey: null,
+        });
+      }
+
+      return NextResponse.json({
+        apiKey,
+      });
+    } catch (redisError) {
+      console.warn('Redis not configured or error:', redisError);
+      return NextResponse.json({
+        apiKey: null,
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching RAWG API key:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }
 
 // POST: Store RAWG API key for a user
