@@ -577,6 +577,29 @@ export function ProfileCard({ lanyard, dstn, lantern, params }: ProfileCardProps
       .then(data => {
         if (data.activities && Array.isArray(data.activities) && data.activities.length > 0) {
           setLastKnownActivities(data.activities);
+          
+          // Update streaks for loaded activities
+          data.activities.forEach((activity: any) => {
+            // Only track streaks for game activities (Playing or Competing)
+            if ((activity.type === 0 || activity.type === 5) && activity.name && activity.timestamps?.start) {
+              fetch('/api/streaks', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  userId,
+                  activityName: activity.name,
+                  startTimestamp: activity.timestamps.start,
+                }),
+              }).catch(error => {
+                // Silently fail if API is unavailable
+                if (process.env.NODE_ENV === 'development') {
+                  console.warn('Failed to update streak:', error);
+                }
+              });
+            }
+          });
         }
         if (data.spotify && typeof data.spotify === 'object') {
           setLastKnownSpotify(data.spotify);
@@ -586,7 +609,7 @@ export function ProfileCard({ lanyard, dstn, lantern, params }: ProfileCardProps
         // Silently fail if API is unavailable
         if (process.env.NODE_ENV === 'development') {
           console.warn('Failed to load last known activities from server:', error);
-    }
+        }
       });
   }, [userId]);
 

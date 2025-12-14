@@ -95,6 +95,8 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
   const smallTip = activity.assets?.small_text || activity.name || 'App';
   const aid = activity.id || 'primary';
   const hasElapsed = !!activity.timestamps?.start && !hideTimestamp;
+  // Show streak even for recent activities (when hideTimestamp is true)
+  const showStreak = activity.name && (activity.type === 0 || activity.type === 5) && streak > 0;
 
   return (
     <article className="discord-activity-card" id={`activity-${aid}`}>
@@ -142,22 +144,26 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
             {activity.state && (
               <div className="activity-artist">{escapeHtml(activity.state)}</div>
             )}
-            {hasElapsed && (
+            {(hasElapsed || showStreak) && (
               <div className="elapsed-row">
-                <div className="elapsed-pill">
-                  <svg className="clock" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2"></circle>
-                    <path d="M12 7v6l4 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-                  </svg>
-                  <span id={`activity-time-${aid}`}>{elapsed}</span>
-                  <span>elapsed</span>
-                </div>
-                <div className="elapsed-pill" id={`streak-pill-${aid}`}>
-                  <svg className="flame" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fill="currentColor" d="m8.294 14-1.767 7.068c-.187.746.736 1.256 1.269.701L19.79 9.27A.75.75 0 0 0 19.25 8h-4.46l1.672-5.013A.75.75 0 0 0 15.75 2h-7a.75.75 0 0 0-.721.544l-3 10.5A.75.75 0 0 0 5.75 14h2.544Z"/>
-                  </svg>
-                  <span>{streak}x&nbsp;Streak</span>
-                </div>
+                {hasElapsed && (
+                  <div className="elapsed-pill">
+                    <svg className="clock" viewBox="0 0 24 24" aria-hidden="true">
+                      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2"></circle>
+                      <path d="M12 7v6l4 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+                    </svg>
+                    <span id={`activity-time-${aid}`}>{elapsed}</span>
+                    <span>elapsed</span>
+                  </div>
+                )}
+                {showStreak && (
+                  <div className="elapsed-pill" id={`streak-pill-${aid}`}>
+                    <svg className="flame" viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="currentColor" d="m8.294 14-1.767 7.068c-.187.746.736 1.256 1.269.701L19.79 9.27A.75.75 0 0 0 19.25 8h-4.46l1.672-5.013A.75.75 0 0 0 15.75 2h-7a.75.75 0 0 0-.721.544l-3 10.5A.75.75 0 0 0 5.75 14h2.544Z"/>
+                    </svg>
+                    <span>{streak}x&nbsp;Streak</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
