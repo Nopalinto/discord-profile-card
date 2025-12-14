@@ -626,6 +626,29 @@ export function ProfileCard({ lanyard, dstn, lantern, params }: ProfileCardProps
           console.warn('Failed to save activities to server:', error);
         }
       });
+
+      // Update streaks for each activity
+      activitiesToStore.forEach((activity) => {
+        // Only track streaks for game activities (Playing or Competing)
+        if ((activity.type === 0 || activity.type === 5) && activity.name && activity.timestamps?.start) {
+          fetch('/api/streaks', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId,
+              activityName: activity.name,
+              startTimestamp: activity.timestamps.start,
+            }),
+          }).catch(error => {
+            // Silently fail if API is unavailable
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Failed to update streak:', error);
+            }
+          });
+        }
+      });
     }
   }, [lanyard?.activities, lanyard?.spotify, userId]); // Removed 'status' dependency to save regardless of status
 
