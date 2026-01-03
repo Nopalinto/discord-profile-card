@@ -23,6 +23,11 @@ function getKey(userId: string): string {
   return `discord-activities:${userId}`;
 }
 
+// Helper function to get Redis key for activity history
+function getHistoryKey(userId: string): string {
+  return `discord-history:${userId}`;
+}
+
 // Helper function to get Redis key for tracked users list
 function getTrackedUsersKey(): string {
   return 'discord-activities:tracked-users';
@@ -124,12 +129,18 @@ export async function GET(request: NextRequest) {
 
     const now = Date.now();
     let cachedData: ActivityData | null = null;
+    let history: any[] = [];
 
     // Try to get from Redis first (for fallback)
     try {
       const client = await getRedisClient();
       const key = getKey(userId);
       const storedJson = await client.get(key);
+      
+      // Fetch history
+      const historyKey = getHistoryKey(userId);
+      const historyJsonList = await client.lRange(historyKey, 0, 19); // Get last 20 items
+      history = historyJsonList.map(item => JSON.parse(item));
       
       if (storedJson) {
         const parsed = JSON.parse(storedJson) as ActivityData;
@@ -177,6 +188,7 @@ export async function GET(request: NextRequest) {
               activities: freshActivities,
               spotify: freshSpotify,
               updatedAt: now,
+              history: history
             });
           } else {
             // Lanyard returned data but no activities
@@ -201,6 +213,7 @@ export async function GET(request: NextRequest) {
                 activities: [],
                 spotify: null,
                 updatedAt: now,
+                history: history
               });
             }
             
@@ -230,6 +243,7 @@ export async function GET(request: NextRequest) {
                   activities: cachedData.activities,
                   spotify: cachedData.spotify,
                   updatedAt: cachedData.updatedAt,
+                  history: history
                 });
               }
               // Cache is older than 2 hours - probably stale, return empty
@@ -241,6 +255,7 @@ export async function GET(request: NextRequest) {
               activities: [],
               spotify: null,
               updatedAt: now,
+              history: history
             });
           }
         } else {
@@ -250,11 +265,13 @@ export async function GET(request: NextRequest) {
               activities: cachedData.activities,
               spotify: cachedData.spotify,
               updatedAt: cachedData.updatedAt,
+              history: history
             });
           }
           return NextResponse.json({
             activities: null,
             spotify: null,
+            history: history
           });
         }
       } catch (lanyardError) {
@@ -265,11 +282,13 @@ export async function GET(request: NextRequest) {
             activities: cachedData.activities,
             spotify: cachedData.spotify,
             updatedAt: cachedData.updatedAt,
+            history: history
           });
         }
         return NextResponse.json({
           activities: null,
           spotify: null,
+          history: history
         });
       }
     } catch (redisError) {
@@ -283,6 +302,7 @@ export async function GET(request: NextRequest) {
             activities: lanyardData.activities || null,
             spotify: lanyardData.spotify || null,
             updatedAt: now,
+            history: [] // Redis failed, so no history
           });
         }
       } catch (lanyardError) {
@@ -292,6 +312,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         activities: null,
         spotify: null,
+        history: []
       });
     }
   } catch (error) {
