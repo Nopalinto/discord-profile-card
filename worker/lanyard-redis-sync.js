@@ -34,6 +34,7 @@ const userStates = new Map(); // Store previous state to detect changes
 const getKey = (userId) => `discord-activities:${userId}`;
 const getStreakKey = (userId) => `discord-streaks:${userId}`;
 const getHistoryKey = (userId) => `discord-history:${userId}`;
+const getInternalStateKey = (userId) => `discord-internal-state:${userId}`;
 
 // Sanitize activity name (copied from validation logic)
 function sanitizeActivityName(name) {
@@ -44,19 +45,46 @@ function sanitizeActivityName(name) {
   return trimmed;
 }
 
+// Load internal state from Redis on startup
+async function loadInternalState(userId) {
+    try {
+        const state = await redis.get(getInternalStateKey(userId));
+        if (state) {
+            userStates.set(userId, JSON.parse(state));
+        }
+    } catch (e) {
+        console.error(`Failed to load internal state for ${userId}`, e);
+    }
+}
+
 // Update history logic
 async function updateHistory(userId, newData) {
-  const oldData = userStates.get(userId);
+  let oldData = userStates.get(userId);
+  
+  // If not in memory, try to load from Redis first
+  if (!oldData) {
+      await loadInternalState(userId);
+      oldData = userStates.get(userId);
+  }
+
   const historyKey = getHistoryKey(userId);
   const now = Date.now();
   
+  // Save new state to memory and Redis
+  userStates.set(userId, newData);
+  // Fire and forget save to Redis to avoid blocking
+  redis.set(getInternalStateKey(userId), JSON.stringify(newData)).catch(console.error);
+  
   if (!oldData) {
-    userStates.set(userId, newData);
     return;
   }
 
   // 1. Check for Spotify song completion/change
-  if (oldData.spotify && (!newData.spotify || oldData.spotify.track_id !== newData.spotify.track_id)) {
+  const hadSpotify = !!oldData.spotify;
+  const hasSpotify = !!newData.spotify;
+  const trackChanged = hasSpotify && oldData.spotify?.track_id !== newData.spotify.track_id;
+
+  if (hadSpotify && (!hasSpotify || trackChanged)) {
     const historyItem = {
       type: 'spotify',
       name: oldData.spotify.song,
@@ -117,9 +145,6 @@ async function updateHistory(userId, newData) {
         }
     }
   }
-
-  // Update local state
-  userStates.set(userId, newData);
 }
 
 // Update streaks logic
