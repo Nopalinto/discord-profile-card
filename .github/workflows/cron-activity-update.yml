@@ -1,0 +1,17 @@
+name: Update Discord Activities
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # Run every 5 minutes
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-activities:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Cron Endpoint
+        run: |
+          curl -X GET "${{ secrets.CRON_ENDPOINT_URL }}" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          -H "User-Agent: GitHub-Action-Cron" \
+          --fail
