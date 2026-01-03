@@ -9,6 +9,7 @@ interface ActivitySectionsProps {
   activities: LanyardActivity[];
   listeningActivities: LanyardActivity[];
   spotify: LanyardSpotify | null;
+  history?: any[] | null;
   hideActivity?: boolean;
   hideSpotify?: boolean;
   hideActivityTime?: boolean;
@@ -21,6 +22,7 @@ function ActivitySectionsComponent({
   activities,
   listeningActivities,
   spotify,
+  history,
   hideActivity,
   hideSpotify,
   hideActivityTime,
@@ -29,6 +31,10 @@ function ActivitySectionsComponent({
   userId,
 }: ActivitySectionsProps) {
   const isOffline = status === 'offline';
+
+  // Process history data if available
+  const historyActivities = history?.filter(h => h.type === 'activity') || [];
+  const historySongs = history?.filter(h => h.type === 'spotify') || [];
   
   return (
     <>
@@ -73,43 +79,70 @@ function ActivitySectionsComponent({
       )}
 
       {/* Show Recent Activity when offline */}
-      {isOffline && !hideRecentActivity && (activities.length > 0 || listeningActivities.length > 0 || spotify) && (
+      {isOffline && !hideRecentActivity && (activities.length > 0 || historyActivities.length > 0) && !hideActivity && (
         <section className="discord-recent-activity-section has-content">
           <div className="recent-activity-header">
             <h3 className="recent-activity-title">Recent activity</h3>
           </div>
           <div id="recent-activities-list" className="recent-activities-list">
-            {activities.length > 0 && !hideActivity && activities.map((activity, index) => (
-              <ActivityCard
-                key={activity.id || index}
-                activity={activity}
-                hideTimestamp={true}
-                userId={userId}
-              />
-            ))}
+            {/* Prefer current activities (cached) then history */}
+            {activities.length > 0 ? (
+              activities.map((activity, index) => (
+                <ActivityCard
+                  key={activity.id || index}
+                  activity={activity}
+                  hideTimestamp={true}
+                  userId={userId}
+                />
+              ))
+            ) : (
+              historyActivities.slice(0, 1).map((item, index) => (
+                <ActivityCard
+                  key={`hist-${index}`}
+                  activity={{
+                    type: 0,
+                    name: item.name,
+                    details: item.details,
+                    assets: {
+                        large_image: item.image ? 'external' : undefined,
+                        large_text: item.name,
+                        external_url: item.image
+                    } as any,
+                    timestamps: { start: item.timestamp - (item.metadata?.duration || 0) }
+                  } as any}
+                  hideTimestamp={true}
+                  userId={userId}
+                />
+              ))
+            )}
           </div>
         </section>
       )}
 
       {/* Show Recent Song when offline */}
-      {isOffline && !hideRecentActivity && (spotify || listeningActivities.length > 0) && !hideSpotify && (
+      {isOffline && !hideRecentActivity && !hideSpotify && (spotify || historySongs.length > 0) && (
         <section className="discord-recent-music-section has-content">
           <div className="recent-music-header">
-            <h3 className="recent-music-title">Song</h3>
+            <h3 className="recent-music-title">Recently played</h3>
           </div>
           <div id="recent-music-list" className="recent-music-list">
-            {spotify && (
+            {spotify ? (
               <SpotifyCard spotify={spotify} hideTimestamp={true} />
+            ) : (
+              historySongs.slice(0, 1).map((item, index) => (
+                <SpotifyCard 
+                  key={`hist-song-${index}`}
+                  spotify={{
+                    song: item.name,
+                    artist: item.details,
+                    album_art_url: item.image,
+                    album: item.metadata?.album,
+                    track_id: item.metadata?.track_id
+                  } as any} 
+                  hideTimestamp={true} 
+                />
+              ))
             )}
-            {listeningActivities.map((activity, index) => {
-              if (activity.name?.toLowerCase().includes('apple')) {
-                return <SpotifyCard key={`apple-${index}`} activity={activity} type="apple" hideTimestamp={true} />;
-              }
-              if (activity.name?.toLowerCase().includes('tidal')) {
-                return <SpotifyCard key={`tidal-${index}`} activity={activity} type="tidal" hideTimestamp={true} />;
-              }
-              return null;
-            })}
           </div>
         </section>
       )}

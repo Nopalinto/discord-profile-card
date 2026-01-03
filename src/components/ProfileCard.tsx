@@ -397,10 +397,11 @@ interface ProfileCardProps {
   lanyard: LanyardResponse['data'] | null;
   dstn: DstnResponse | null;
   lantern: LanternResponse | null;
+  history?: any[] | null;
   params?: UrlParams;
 }
 
-export function ProfileCard({ lanyard, dstn, lantern, params }: ProfileCardProps) {
+export function ProfileCard({ lanyard, dstn, lantern, history, params }: ProfileCardProps) {
   const user = lanyard?.discord_user || null;
   const dstnUser = dstn?.user || null;
 
@@ -946,6 +947,7 @@ export function ProfileCard({ lanyard, dstn, lantern, params }: ProfileCardProps
             activities={activities}
             listeningActivities={listeningActivities}
             spotify={spotify}
+            history={history}
             hideActivity={params?.hideActivity}
             hideSpotify={params?.hideSpotify}
             hideActivityTime={params?.hideActivityTime}

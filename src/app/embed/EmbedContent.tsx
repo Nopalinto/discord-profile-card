@@ -28,10 +28,12 @@ export function EmbedContent() {
     lanyard: LanyardResponse['data'] | null;
     dstn: DstnResponse | null;
     lantern: LanternResponse | null;
+    history: any[] | null;
   }>({
     lanyard: null,
     dstn: null,
     lantern: null,
+    history: null,
   });
 
   // Use only useAllRealTimeUpdates to avoid duplicate API calls on initial load
@@ -43,6 +45,7 @@ export function EmbedContent() {
         lanyard: data.lanyard,
         dstn: data.dstn,
         lantern: data.lantern,
+        history: data.history,
       });
     },
     2000, // 2 seconds for more responsive updates
@@ -120,6 +123,7 @@ export function EmbedContent() {
             lanyard={profileData.lanyard}
             dstn={profileData.dstn}
             lantern={profileData.lantern}
+            history={profileData.history}
             params={urlParams}
           />
           </div>

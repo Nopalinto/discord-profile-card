@@ -14,6 +14,7 @@ export interface AllUpdatesCallback {
     lanyard: LanyardResponse['data'] | null;
     dstn: DstnResponse | null;
     lantern: LanternResponse | null;
+    history: any[] | null;
   }): void;
 }
 
@@ -42,28 +43,29 @@ export function useAllRealTimeUpdates(
       if (!isActive) return;
       
       try {
-        // Fetch all three APIs in parallel, bypassing cache for real-time updates
-        const [lanyardData, dstnData, lanternData] = await Promise.all([
+        // Fetch all APIs in parallel
+        // 1. Core APIs
+        // 2. Internal Activities API (which also returns history)
+        const [lanyardData, dstnData, lanternData, internalActivities] = await Promise.all([
           fetchLanyardData(userId, true),
           fetchDstnData(userId, true),
           fetchLanternData(userId, true),
+          fetch(`/api/activities?userId=${userId}`).then(res => res.json()).catch(() => ({ history: [] }))
         ]);
 
         if (!isActive) return;
 
-        // Create a comprehensive hash of all critical fields to detect changes
-        // Include all activity details, Spotify info, and status changes
+        const history = internalActivities?.history || [];
+
+        // Create a hash to detect changes
         let lanyardHash = 'null';
         if (lanyardData) {
           const status = lanyardData.discord_status || '';
           const activities = lanyardData.activities || [];
-          // Hash all activities with their key details
           const activitiesHash = activities.map(activity => {
-            // For activities, include name, state, details, and timestamps
             return `activity:${activity.id || ''}:${activity.name || ''}:${activity.state || ''}:${activity.details || ''}:${activity.timestamps?.start || ''}:${activity.timestamps?.end || ''}`;
           }).join('|');
           
-          // Hash Spotify separately (it's a separate field, not in activities)
           const spotify = lanyardData.spotify;
           const spotifyHash = spotify 
             ? `spotify:${spotify.track_id || ''}:${spotify.song || ''}:${spotify.artist || ''}:${spotify.album || ''}:${spotify.timestamps?.start || ''}:${spotify.timestamps?.end || ''}`
@@ -74,7 +76,8 @@ export function useAllRealTimeUpdates(
         
         const dstnHash = dstnData ? `${dstnData.user_profile?.bio?.substring(0, 50) || ''}-${dstnData.user_profile?.theme_colors?.join(',') || ''}` : 'null';
         const lanternHash = lanternData ? `${lanternData.status}-${lanternData.last_seen_at || ''}` : 'null';
-        const dataHash = `${lanyardHash}|${dstnHash}|${lanternHash}`;
+        // Add history length to hash to detect new history items
+        const dataHash = `${lanyardHash}|${dstnHash}|${lanternHash}|${history.length}`;
 
         // Only call callback if data actually changed
         if (dataHash !== lastDataRef.current) {
@@ -83,10 +86,10 @@ export function useAllRealTimeUpdates(
             lanyard: lanyardData,
             dstn: dstnData,
             lantern: lanternData,
+            history: history,
           });
         }
       } catch (error) {
-        // Silent error handling
         if (process.env.NODE_ENV === 'development') {
           console.error('Real-time update error:', error);
         }
