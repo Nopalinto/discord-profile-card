@@ -212,15 +212,18 @@ function parseInlineMarkdown(text: string): React.ReactNode {
       const linkMatch = remaining.match(/^\[([^\]]+)\]\(([^)]+)\)/);
       if (linkMatch) {
         const linkText = linkMatch[1];
-        const linkUrl = linkMatch[2];
+        const linkUrl = sanitizeExternalURL(linkMatch[2]);
         parts.push(
           <a
             key={`link-${keyCounter++}`}
-            href={linkUrl}
+            href={linkUrl || '#'}
             target="_blank"
             rel="noopener noreferrer"
             className="bio-link"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              if (!linkUrl) e.preventDefault();
+              e.stopPropagation();
+            }}
           >
             {parseInlineMarkdown(linkText)}
           </a>
@@ -631,24 +634,8 @@ export function ProfileCard({ lanyard, dstn, lantern, params }: ProfileCardProps
         setLastKnownSpotify(spotifyToStore);
       }
       
-      // Always persist to server when activities change (even if offline)
-      // This ensures we capture the most recent activities before user goes offline
-      fetch('/api/activities', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          activities: activitiesToStore,
-          spotify: spotifyToStore,
-        }),
-      }).catch(error => {
-        // Silently fail if API is unavailable
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Failed to save activities to server:', error);
-        }
-      });
+      // POST /api/activities removed due to security vulnerability (Unauthenticated Cache Poisoning)
+      // We rely on the backend to fetch fresh data from Lanyard directly via the GET endpoint.
 
       // Update streaks for each activity
       activitiesToStore.forEach((activity) => {

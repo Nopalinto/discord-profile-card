@@ -26,3 +26,15 @@ export function escapeHtml(text: string): string {
   return div.textContent || ''; // Use textContent instead of innerHTML for clarity
 }
 
+export function sanitizeActivityName(name: string | null | undefined): string {
+  if (!name) return '';
+  // Limit length to 128 characters (Discord activity names are usually short)
+  const trimmed = name.trim().slice(0, 128);
+  // Prevent prototype pollution
+  const forbidden = ['__proto__', 'constructor', 'prototype'];
+  if (forbidden.includes(trimmed.toLowerCase())) {
+    return 'Invalid Activity';
+  }
+  return trimmed;
+}
+

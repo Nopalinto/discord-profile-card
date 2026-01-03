@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from 'redis';
-import { isValidDiscordId } from '@/lib/utils/validation';
+import { isValidDiscordId, sanitizeActivityName } from '@/lib/utils/validation';
 
 // Streak data structure stored in Redis
 interface StreakData {
@@ -10,6 +10,9 @@ interface StreakData {
     minutesToday: number; // Minutes played today
   };
 }
+
+// Maximum number of different activities to track per user
+const MAX_ACTIVITIES_PER_USER = 100;
 
 // Clean up old entries (older than 90 days)
 const MAX_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days
@@ -140,7 +143,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!activityName || typeof activityName !== 'string') {
+    const title = sanitizeActivityName(activityName);
+    if (!title || title === 'Invalid Activity') {
       return NextResponse.json(
         { error: 'Invalid or missing activityName' },
         { status: 400 }
@@ -153,7 +157,15 @@ export async function POST(request: NextRequest) {
       const storedJson = await client.get(key);
       
       const streaks: StreakData = storedJson ? JSON.parse(storedJson) : {};
-      const title = activityName.trim();
+      
+      // Limit number of activities per user to prevent storage exhaustion
+      if (!streaks[title] && Object.keys(streaks).length >= MAX_ACTIVITIES_PER_USER) {
+        return NextResponse.json(
+          { error: 'Too many activities tracked for this user' },
+          { status: 400 }
+        );
+      }
+
       const record = streaks[title] || { lastDate: '', days: 0, minutesToday: 0 };
       
       const now = new Date();

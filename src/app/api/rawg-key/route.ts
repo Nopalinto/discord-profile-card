@@ -80,11 +80,19 @@ export async function GET(request: NextRequest) {
       if (!apiKey) {
         return NextResponse.json({
           apiKey: null,
+          exists: false,
         });
       }
 
+      // DO NOT return the full API key to the client to prevent theft
+      // Only return a masked version to indicate it's configured
+      const maskedKey = apiKey.length > 8 
+        ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`
+        : '****';
+
       return NextResponse.json({
-        apiKey,
+        apiKey: maskedKey,
+        exists: true,
       });
     } catch (redisError) {
       console.warn('Redis not configured or error:', redisError);

@@ -34,39 +34,24 @@ function HomePageContent() {
   });
   
   // Store RAWG API key on server (associated with userId)
-  const [rawgApiKey, setRawgApiKey] = useState('');
-  const currentUserIdRef = useRef(userId);
-
-  // Load RAWG API key from server when userId is available
+  const [rawgApiKey, setRawgApiKey] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(`rawg-api-key-${userId}`) || '';
+    }
+    return '';
+  });
+  
+  // Load RAWG API key from localStorage when userId changes
   useEffect(() => {
-    if (typeof window === 'undefined' || !userId || !isValidDiscordId(userId)) {
-      setRawgApiKey('');
-      return;
+    if (typeof window !== 'undefined' && userId) {
+      const savedKey = localStorage.getItem(`rawg-api-key-${userId}`);
+      if (savedKey) {
+        setRawgApiKey(savedKey);
+      }
     }
-
-    // Only fetch if userId changed
-    if (currentUserIdRef.current === userId && rawgApiKey) {
-      return;
-    }
-
-    currentUserIdRef.current = userId;
-
-    // Fetch stored API key from server
-    fetch(`/api/rawg-key?userId=${userId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.apiKey) {
-          setRawgApiKey(data.apiKey);
-        }
-      })
-      .catch(error => {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Failed to load RAWG API key from server:', error);
-        }
-      });
   }, [userId]);
 
-  // Save API key to server when it changes
+  // Save API key to server and localStorage when it changes
   useEffect(() => {
     if (typeof window === 'undefined' || !userId || !isValidDiscordId(userId)) {
       return;
@@ -74,6 +59,14 @@ function HomePageContent() {
 
     // Debounce saves to avoid too many requests
     const timeoutId = setTimeout(() => {
+      // Save to localStorage
+      if (rawgApiKey) {
+        localStorage.setItem(`rawg-api-key-${userId}`, rawgApiKey);
+      } else {
+        localStorage.removeItem(`rawg-api-key-${userId}`);
+      }
+
+      // Save to server (for embeds)
       fetch('/api/rawg-key', {
         method: 'POST',
         headers: {
