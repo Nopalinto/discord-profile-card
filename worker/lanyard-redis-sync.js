@@ -28,10 +28,12 @@ redis.on('error', (err) => console.error('Redis Client Error:', err));
 let trackedUsers = new Set();
 let ws = null;
 let heartbeatInterval = null;
+const userStates = new Map(); // Store previous state to detect changes
 
 // Helper to get Redis keys
 const getKey = (userId) => `discord-activities:${userId}`;
 const getStreakKey = (userId) => `discord-streaks:${userId}`;
+const getHistoryKey = (userId) => `discord-history:${userId}`;
 
 // Sanitize activity name (copied from validation logic)
 function sanitizeActivityName(name) {
@@ -40,6 +42,81 @@ function sanitizeActivityName(name) {
   const forbidden = ['__proto__', 'constructor', 'prototype'];
   if (forbidden.includes(trimmed.toLowerCase())) return 'Invalid Activity';
   return trimmed;
+}
+
+// Update history logic
+async function updateHistory(userId, newData) {
+  const oldData = userStates.get(userId);
+  const historyKey = getHistoryKey(userId);
+  const now = Date.now();
+  
+  if (!oldData) {
+    userStates.set(userId, newData);
+    return;
+  }
+
+  // 1. Check for Spotify song completion/change
+  if (oldData.spotify && (!newData.spotify || oldData.spotify.track_id !== newData.spotify.track_id)) {
+    const historyItem = {
+      type: 'spotify',
+      name: oldData.spotify.song,
+      details: oldData.spotify.artist,
+      image: oldData.spotify.album_art_url,
+      timestamp: now,
+      metadata: {
+        track_id: oldData.spotify.track_id,
+        album: oldData.spotify.album
+      }
+    };
+    await redis.lPush(historyKey, JSON.stringify(historyItem));
+    await redis.lTrim(historyKey, 0, 19); // Keep last 20
+    console.log(`[${userId}] Logged Spotify history: ${historyItem.name}`);
+  }
+
+  // 2. Check for Activity completion
+  // Find activities that were present but are now gone
+  const oldActivities = oldData.activities || [];
+  const newActivities = newData.activities || [];
+  
+  for (const oldActivity of oldActivities) {
+    // Skip custom status and spotify (handled separately)
+    if (oldActivity.type === 4 || oldActivity.type === 2) continue;
+
+    // Check if this specific activity is gone or restarted
+    // We match by name and application_id
+    const isStillActive = newActivities.find(
+        newA => newA.name === oldActivity.name && newA.application_id === oldActivity.application_id
+    );
+
+    if (!isStillActive) {
+        // Activity ended
+        let duration = 0;
+        if (oldActivity.timestamps && oldActivity.timestamps.start) {
+            duration = now - oldActivity.timestamps.start;
+        }
+
+        // Only log if it lasted at least 1 minute
+        if (duration > 60000) {
+            const historyItem = {
+                type: 'activity',
+                name: oldActivity.name,
+                details: oldActivity.details || oldActivity.state,
+                image: oldActivity.assets?.large_image ? `https://cdn.discordapp.com/app-assets/${oldActivity.application_id}/${oldActivity.assets.large_image}.png` : null,
+                timestamp: now,
+                metadata: {
+                    application_id: oldActivity.application_id,
+                    duration: duration
+                }
+            };
+            await redis.lPush(historyKey, JSON.stringify(historyItem));
+            await redis.lTrim(historyKey, 0, 19); // Keep last 20
+            console.log(`[${userId}] Logged Activity history: ${historyItem.name}`);
+        }
+    }
+  }
+
+  // Update local state
+  userStates.set(userId, newData);
 }
 
 // Update streaks logic
@@ -164,6 +241,9 @@ function connectLanyard() {
                 const ttlSeconds = Math.floor(MAX_AGE / 1000);
                 await redis.setEx(key, ttlSeconds, JSON.stringify(activityData));
                 console.log(`[${userId}] Updated activity cache`);
+
+                // Update History (Detect ended activities/songs)
+                await updateHistory(userId, activityData);
 
                 // Update Streaks
                 await updateStreaks(userId, data.activities || []);
