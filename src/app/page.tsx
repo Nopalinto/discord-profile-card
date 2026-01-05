@@ -575,7 +575,7 @@ function HomePageContent() {
                       title: 'RAWG API Key',
                       description: 'Improve game activity images',
                       defaultOpen: false,
-                      content: <RawgApiKeyInput value={rawgApiKey} onChange={setRawgApiKey} />,
+                      content: <RawgApiKeyInput value={rawgApiKey} onChange={setRawgApiKey} userId={userId} />,
                     },
                     {
                       id: 'quick-customize',

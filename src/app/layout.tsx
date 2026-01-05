@@ -3,6 +3,7 @@ import Script from 'next/script';
 import '@/styles/globals.css';
 import { EntryFadeOverlay } from '@/components/EntryFadeOverlay';
 import { Analytics } from '@vercel/analytics/react';
+import { Providers } from '@/components/Providers';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://discord-card.nopalinto.dev';
 
@@ -98,9 +99,11 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
-        <EntryFadeOverlay />
-        {children}
-        <Analytics />
+        <Providers>
+          <EntryFadeOverlay />
+          {children}
+          <Analytics />
+        </Providers>
       </body>
     </html>
   );

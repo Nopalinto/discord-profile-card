@@ -3,6 +3,8 @@ import { createClient } from 'redis';
 import type { LanyardActivity, LanyardSpotify } from '@/lib/types/lanyard';
 import { isValidDiscordId } from '@/lib/utils/validation';
 import { fetchLanyardData } from '@/lib/api/lanyard';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 // Activity data structure stored in Redis
 interface ActivityData {
@@ -119,6 +121,11 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+
+    const session = await getServerSession(authOptions);
+    if (!session || session.user?.id !== userId) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
 
     if (!userId || !isValidDiscordId(userId)) {
       return NextResponse.json(

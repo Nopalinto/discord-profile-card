@@ -6,7 +6,11 @@ const ALGORITHM = 'aes-256-gcm';
 function getEncryptionKey(): Buffer {
   // Use a dedicated encryption key or fallback to NextAuth secret
   // In production, ENCRYPTION_KEY should be set to a strong random string
-  const secret = process.env.ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || 'fallback-dev-secret-do-not-use-in-prod';
+  const secret = process.env.ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET;
+  
+  if (!secret) {
+    throw new Error('CRITICAL SECURITY: ENCRYPTION_KEY or NEXTAUTH_SECRET is not set.');
+  }
   
   // Ensure key is 32 bytes (256 bits) using SHA-256
   return createHash('sha256').update(String(secret)).digest();
@@ -28,7 +32,7 @@ export function encrypt(text: string): string {
     // Format: iv:authTag:encrypted (all hex encoded)
     return `${iv.toString('hex')}:${authTag}:${encrypted}`;
   } catch (error) {
-    console.error('Encryption failed:', error);
+    console.error('Encryption failed');
     throw new Error('Failed to encrypt data');
   }
 }
@@ -67,7 +71,7 @@ export function decrypt(encryptedText: string): string {
     
     return decrypted;
   } catch (error) {
-    console.error('Decryption failed:', error);
+    console.error('Decryption failed');
     // In case of error, return empty string or throw depending on needs. 
     // Throwing is safer to avoid using garbage data.
     throw new Error('Failed to decrypt data');

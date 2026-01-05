@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from 'redis';
 import { isValidDiscordId } from '@/lib/utils/validation';
 import { encrypt, decrypt } from '@/lib/encryption';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 // Helper function to get Redis key for a user's RAWG API key
 function getKey(userId: string): string {
@@ -66,6 +68,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
+    const session = await getServerSession(authOptions);
+    if (!session || session.user?.id !== userId) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
     if (!userId || !isValidDiscordId(userId)) {
       return NextResponse.json(
         { error: 'Invalid or missing userId' },
@@ -90,7 +97,7 @@ export async function GET(request: NextRequest) {
       try {
         apiKey = decrypt(encryptedApiKey);
       } catch (e) {
-        console.error('Failed to decrypt API key for user:', userId, e);
+        console.error('Failed to decrypt API key'); // Sanitized log
         // If decryption fails, we can't use the key
         return NextResponse.json({
           apiKey: null,
@@ -128,6 +135,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { userId, apiKey } = body;
+
+    const session = await getServerSession(authOptions);
+    if (!session || session.user?.id !== userId) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
 
     if (!userId || !isValidDiscordId(userId)) {
       return NextResponse.json(

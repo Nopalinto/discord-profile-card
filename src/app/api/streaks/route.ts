@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from 'redis';
 import { isValidDiscordId, sanitizeActivityName } from '@/lib/utils/validation';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 // Streak data structure stored in Redis
 interface StreakData {
@@ -85,6 +87,11 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const activityName = searchParams.get('activityName');
 
+    const session = await getServerSession(authOptions);
+    if (!session || session.user?.id !== userId) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
     if (!userId || !isValidDiscordId(userId)) {
       return NextResponse.json(
         { error: 'Invalid or missing userId' },
@@ -135,6 +142,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { userId, activityName, startTimestamp } = body;
+
+    const session = await getServerSession(authOptions);
+    if (!session || session.user?.id !== userId) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
 
     if (!userId || !isValidDiscordId(userId)) {
       return NextResponse.json(
