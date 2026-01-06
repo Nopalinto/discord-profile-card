@@ -15,6 +15,8 @@ export interface AllUpdatesCallback {
     dstn: DstnResponse | null;
     lantern: LanternResponse | null;
     history: any[] | null;
+    isVerified?: boolean;
+    updatedAt?: number;
   }): void;
 }
 
@@ -50,12 +52,14 @@ export function useAllRealTimeUpdates(
           fetchLanyardData(userId, true),
           fetchDstnData(userId, true),
           fetchLanternData(userId, true),
-          fetch(`/api/activities?userId=${userId}`).then(res => res.json()).catch(() => ({ history: [] }))
+          fetch(`/api/activities?userId=${userId}`).then(res => res.json()).catch(() => ({ history: [], isVerified: false, updatedAt: Date.now() }))
         ]);
 
         if (!isActive) return;
 
         const history = internalActivities?.history || [];
+        const isVerified = internalActivities?.isVerified;
+        const updatedAt = internalActivities?.updatedAt;
 
         // Create a hash to detect changes
         let lanyardHash = 'null';
@@ -76,8 +80,8 @@ export function useAllRealTimeUpdates(
         
         const dstnHash = dstnData ? `${dstnData.user_profile?.bio?.substring(0, 50) || ''}-${dstnData.user_profile?.theme_colors?.join(',') || ''}` : 'null';
         const lanternHash = lanternData ? `${lanternData.status}-${lanternData.last_seen_at || ''}` : 'null';
-        // Add history length to hash to detect new history items
-        const dataHash = `${lanyardHash}|${dstnHash}|${lanternHash}|${history.length}`;
+        // Add history length, verification status, and timestamp to hash
+        const dataHash = `${lanyardHash}|${dstnHash}|${lanternHash}|${history.length}|${isVerified}|${updatedAt}`;
 
         // Only call callback if data actually changed
         if (dataHash !== lastDataRef.current) {
@@ -87,6 +91,8 @@ export function useAllRealTimeUpdates(
             dstn: dstnData,
             lantern: lanternData,
             history: history,
+            isVerified: isVerified,
+            updatedAt: updatedAt
           });
         }
       } catch (error) {

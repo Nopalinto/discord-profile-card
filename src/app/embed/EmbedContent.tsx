@@ -30,11 +30,15 @@ export function EmbedContent() {
     dstn: DstnResponse | null;
     lantern: LanternResponse | null;
     history: any[] | null;
+    isVerified: boolean;
+    updatedAt: number;
   }>({
     lanyard: null,
     dstn: null,
     lantern: null,
     history: null,
+    isVerified: true, // Default to true until fetched
+    updatedAt: Date.now(),
   });
 
   // Use only useAllRealTimeUpdates to avoid duplicate API calls on initial load
@@ -47,6 +51,8 @@ export function EmbedContent() {
         dstn: data.dstn,
         lantern: data.lantern,
         history: data.history,
+        isVerified: data.isVerified ?? false,
+        updatedAt: data.updatedAt || Date.now(),
       });
     },
     2000, // 2 seconds for more responsive updates
@@ -128,6 +134,8 @@ export function EmbedContent() {
             lantern={profileData.lantern}
             history={profileData.history}
             params={urlParams}
+            isVerified={profileData.isVerified}
+            updatedAt={profileData.updatedAt}
           />
           </div>
         </div>

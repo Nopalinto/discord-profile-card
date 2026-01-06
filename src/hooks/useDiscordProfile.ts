@@ -13,6 +13,9 @@ export interface ProfileData {
   lanyard: LanyardResponse['data'] | null;
   dstn: DstnResponse | null;
   lantern: LanternResponse | null;
+  history: any[] | null;
+  isVerified: boolean;
+  updatedAt: number;
   loading: boolean;
   error: Error | null;
 }
@@ -22,6 +25,9 @@ export function useDiscordProfile(userId: string | null, autoUpdate = false, upd
     lanyard: null,
     dstn: null,
     lantern: null,
+    history: null,
+    isVerified: true,
+    updatedAt: Date.now(),
     loading: true,
     error: null,
   });
@@ -35,16 +41,20 @@ export function useDiscordProfile(userId: string | null, autoUpdate = false, upd
     setProfile(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const [lanyardData, dstnData, lanternData] = await Promise.all([
+      const [lanyardData, dstnData, lanternData, internalActivities] = await Promise.all([
         fetchLanyardData(id),
         fetchDstnData(id),
         fetchLanternData(id),
+        fetch(`/api/activities?userId=${id}`).then(res => res.json()).catch(() => ({ history: [], isVerified: false, updatedAt: Date.now() }))
       ]);
 
       setProfile({
         lanyard: lanyardData,
         dstn: dstnData,
         lantern: lanternData,
+        history: internalActivities?.history || [],
+        isVerified: internalActivities?.isVerified ?? false,
+        updatedAt: internalActivities?.updatedAt || Date.now(),
         loading: false,
         error: null,
       });

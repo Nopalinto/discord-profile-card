@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { signIn } from 'next-auth/react';
+import { Lock } from 'lucide-react';
 import type { LanyardResponse, LanyardActivity, LanyardSpotify } from '@/lib/types/lanyard';
 import type { DstnResponse } from '@/lib/types/dstn';
 import type { LanternResponse } from '@/lib/types/lantern';
@@ -399,9 +401,11 @@ interface ProfileCardProps {
   lantern: LanternResponse | null;
   history?: any[] | null;
   params?: UrlParams;
+  isVerified?: boolean;
+  updatedAt?: number;
 }
 
-export function ProfileCard({ lanyard, dstn, lantern, history, params }: ProfileCardProps) {
+export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerified = true, updatedAt = Date.now() }: ProfileCardProps) {
   const user = lanyard?.discord_user || null;
   const dstnUser = dstn?.user || null;
 

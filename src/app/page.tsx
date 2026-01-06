@@ -155,7 +155,7 @@ function HomePageContent() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasSetColorFromApi, setHasSetColorFromApi] = useState(false);
 
-  const { lanyard, dstn, lantern, loading } = useDiscordProfile(
+  const { lanyard, dstn, lantern, loading, isVerified, updatedAt } = useDiscordProfile(
     isValidDiscordId(userId) ? userId : null,
     false
   );
@@ -568,7 +568,12 @@ function HomePageContent() {
                       title: 'User ID',
                       description: 'Enter your Discord User ID',
                       defaultOpen: true,
-                      content: <UserIdInput value={userId} onChange={setUserId} />,
+                      content: (
+                        <UserIdInput 
+                          value={userId} 
+                          onChange={setUserId} 
+                        />
+                      ),
                     },
                     {
                       id: 'rawg-api-key',
