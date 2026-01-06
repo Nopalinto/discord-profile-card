@@ -4,29 +4,41 @@
   padding: 0;
   background: transparent !important;
   font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  min-height: 100vh;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  width: fit-content;
   overflow: visible;
 }
 
+.embedBody.centered {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .embedContainer {
+  width: fit-content;
+  overflow: visible;
+  padding: 0;
+}
+
+.embedBody.centered .embedContainer {
   max-width: 380px;
   width: 100%;
   margin: 0 auto;
-  overflow: visible;
-  padding: 0;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .profileWrapper {
+  width: fit-content;
+  overflow: visible;
+}
+
+.embedBody.centered .profileWrapper {
   width: 100%;
   display: flex;
   justify-content: center;
   align-items: stretch;
-  overflow: visible;
 }

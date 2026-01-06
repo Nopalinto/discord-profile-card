@@ -19,6 +19,7 @@ export function EmbedContent() {
   const searchParams = useSearchParams();
   const urlParams = useUrlParams();
   const userId = urlParams.id || searchParams.get('id') || DEFAULT_USER_ID;
+  const isCentered = searchParams.get('center') === 'true' || searchParams.get('preview') === 'true';
   
   // RAWG API key is now stored server-side and accessed via userId
   // No need to pass it to ProfileCard - it will fetch from server automatically
@@ -95,6 +96,7 @@ export function EmbedContent() {
 
   // Override body styles for embed page
   useEffect(() => {
+    document.body.classList.add('is-embed');
     document.body.style.margin = '0';
     document.body.style.padding = '0';
     document.body.style.background = 'transparent';
@@ -103,6 +105,7 @@ export function EmbedContent() {
     document.documentElement.style.overflow = 'visible';
     
     return () => {
+      document.body.classList.remove('is-embed');
       document.body.style.margin = '';
       document.body.style.padding = '';
       document.body.style.background = '';
@@ -116,7 +119,7 @@ export function EmbedContent() {
     <>
       <SvgMasks />
       <BadgeTooltip />
-      <div className={styles.embedBody} ref={containerRef}>
+      <div className={`${styles.embedBody} ${isCentered ? styles.centered : ''}`} ref={containerRef}>
         <div className={styles.embedContainer}>
           <div className={styles.profileWrapper} ref={profileRef}>
             <ProfileCard

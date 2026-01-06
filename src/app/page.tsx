@@ -251,7 +251,7 @@ function HomePageContent() {
         }
       }
     });
-    return typeof window !== 'undefined' ? `${window.location.origin}/embed?${params.toString()}` : '';
+    return typeof window !== 'undefined' ? `${window.location.origin}/embed?${params.toString()}&center=true` : '';
   }, [userId, urlParams]);
 
   useEffect(() => {
