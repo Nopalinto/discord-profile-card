@@ -163,6 +163,7 @@ const areEqual = (prev: ActivitySectionsProps, next: ActivitySectionsProps): boo
   prev.spotify === next.spotify &&
   prev.activities === next.activities &&
   prev.listeningActivities === next.listeningActivities &&
+  prev.history === next.history &&
   prev.status === next.status &&
   prev.userId === next.userId
 );

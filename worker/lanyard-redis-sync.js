@@ -45,11 +45,15 @@ function sanitizeActivityName(name) {
   return trimmed;
 }
 
-// Helper to resolve Discord asset images (handles mp: external images)
+// Helper to resolve Discord asset images (handles mp: external images and spotify:)
 function resolveImage(appId, assetId) {
     if (!assetId) return null;
-    if (String(assetId).startsWith('mp:')) {
-        return `https://media.discordapp.net/${String(assetId).slice(3)}`;
+    const strAssetId = String(assetId);
+    if (strAssetId.startsWith('mp:')) {
+        return `https://media.discordapp.net/${strAssetId.slice(3)}`;
+    }
+    if (strAssetId.startsWith('spotify:')) {
+        return `https://i.scdn.co/image/${strAssetId.slice(8)}`;
     }
     return `https://cdn.discordapp.com/app-assets/${appId}/${assetId}.png`;
 }
@@ -98,6 +102,45 @@ async function updateHistory(userId, newData) {
     return;
   }
 
+  // Helper to add history item with deduplication by category
+  const addToHistory = async (historyItem) => {
+    try {
+      // Define categories: 'music' for music services, 'activity' for everything else
+      const getCategory = (type) => ['spotify', 'apple', 'tidal'].includes(type) ? 'music' : 'activity';
+      const newItemCategory = getCategory(historyItem.type);
+
+      // Get current history
+      const historyList = await redis.lRange(historyKey, 0, -1);
+      
+      // Filter out existing items of the same category
+      // We parse each item, check its category, and keep it only if it's DIFFERENT from the new item's category
+      const filteredHistory = historyList
+        .map(item => JSON.parse(item))
+        .filter(item => getCategory(item.type) !== newItemCategory);
+
+      // Rebuild the list atomically (or close to it)
+      // 1. Clear the list
+      await redis.del(historyKey);
+      
+      // 2. Add back filtered items (preserve order)
+      // filteredHistory is [Newest, ..., Oldest]
+      // We rPush them so they appear in that order in the list
+      for (const item of filteredHistory) {
+          await redis.rPush(historyKey, JSON.stringify(item));
+      }
+      
+      // 3. Add new item to the top
+      await redis.lPush(historyKey, JSON.stringify(historyItem));
+      
+      // 4. Trim just in case
+      await redis.lTrim(historyKey, 0, 19);
+      
+      console.log(`[${userId}] Logged ${historyItem.type} history: ${historyItem.name}`);
+    } catch (err) {
+      console.error(`[${userId}] Failed to add to history`, err);
+    }
+  };
+
   // 1. Check for Spotify song completion/change (Lanyard native field)
   const hadSpotify = !!oldData.spotify;
   const hasSpotify = !!newData.spotify;
@@ -115,9 +158,7 @@ async function updateHistory(userId, newData) {
         album: oldData.spotify.album
       }
     };
-    await redis.lPush(historyKey, JSON.stringify(historyItem));
-    await redis.lTrim(historyKey, 0, 19);
-    console.log(`[${userId}] Logged Spotify history: ${historyItem.name}`);
+    await addToHistory(historyItem);
   }
 
   // 2. Check for Activity completion (including Apple/Tidal)
@@ -159,9 +200,7 @@ async function updateHistory(userId, newData) {
                     album: musicType ? oldActivity.assets?.large_text : undefined
                 }
             };
-            await redis.lPush(historyKey, JSON.stringify(historyItem));
-            await redis.lTrim(historyKey, 0, 19); 
-            console.log(`[${userId}] Logged ${historyItem.type} history: ${historyItem.name}`);
+            await addToHistory(historyItem);
         }
     }
   }

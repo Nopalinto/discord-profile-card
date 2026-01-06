@@ -122,11 +122,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
-    const session = await getServerSession(authOptions);
-    if (!session || session.user?.id !== userId) {
-      return new NextResponse("Forbidden", { status: 403 });
-    }
-
     if (!userId || !isValidDiscordId(userId)) {
       return NextResponse.json(
         { error: 'Invalid or missing userId' },
