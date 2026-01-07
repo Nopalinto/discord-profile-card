@@ -1,61 +1,9 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
-import { createClient } from 'redis';
+import { getRedisClient, RedisKeys } from '@/lib/redis';
+import type { StreakData } from '@/lib/types/redis';
 
 // export const runtime = 'edge';
-
-// Reuse the Redis client logic
-let redis: ReturnType<typeof createClient> | null = null;
-
-async function getRedisClient() {
-  if (redis && redis.isOpen) {
-    return redis;
-  }
-
-  try {
-    const redisUrl = process.env.KV_URL || process.env.REDIS_URL;
-    
-    if (!redisUrl) {
-      return null;
-    }
-
-    const needsTls = redisUrl.startsWith('rediss://') || redisUrl.includes(':6380');
-
-    const reconnectStrategy = (retries: number) => {
-      if (retries > 10) {
-        return new Error('Too many reconnection attempts');
-      }
-      return Math.min(retries * 100, 3000);
-    };
-
-    if (needsTls) {
-      redis = createClient({
-        url: redisUrl,
-        socket: {
-          tls: true,
-          reconnectStrategy,
-        },
-      });
-    } else {
-      redis = createClient({
-        url: redisUrl,
-        socket: {
-          reconnectStrategy,
-        },
-      });
-    }
-
-    redis.on('error', (err) => {
-      console.error('Redis Client Error:', err);
-    });
-
-    await redis.connect();
-    return redis;
-  } catch (error) {
-    console.error('Failed to connect to Redis:', error);
-    return null;
-  }
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -74,11 +22,11 @@ export async function GET(request: NextRequest) {
     try {
       const client = await getRedisClient();
       if (client) {
-        const key = `discord-streaks:${userId}`;
+        const key = RedisKeys.streaks(userId);
         const storedJson = await client.get(key);
         
         if (storedJson) {
-          const streaks = JSON.parse(storedJson);
+          const streaks: StreakData = JSON.parse(storedJson);
           // Case-insensitive search for activity
           const activityKey = Object.keys(streaks).find(
             k => k.toLowerCase() === activity.toLowerCase()

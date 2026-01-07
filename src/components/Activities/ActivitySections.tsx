@@ -82,7 +82,7 @@ function ActivitySectionsComponent({
       {isOffline && !hideRecentActivity && (activities.length > 0 || historyActivities.length > 0) && !hideActivity && (
         <section className="discord-recent-activity-section has-content">
           <div className="recent-activity-header">
-            <h3 className="recent-activity-title">Recent activity</h3>
+            <h3 className="recent-activity-title">Recent Activity</h3>
           </div>
           <div id="recent-activities-list" className="recent-activities-list">
             {/* Prefer current activities (cached) then history */}
@@ -127,7 +127,7 @@ function ActivitySectionsComponent({
       {isOffline && !hideRecentActivity && !hideSpotify && (spotify || historySongs.length > 0) && (
         <section className="discord-recent-music-section has-content">
           <div className="recent-music-header">
-            <h3 className="recent-music-title">Recently played</h3>
+            <h3 className="recent-music-title">Recent Song</h3>
           </div>
           <div id="recent-music-list" className="recent-music-list">
             {spotify ? (

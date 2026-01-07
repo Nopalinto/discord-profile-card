@@ -2,11 +2,12 @@ import { createClient } from 'redis';
 import WebSocket from 'ws';
 
 // Configuration
+// Note: These constants should match src/lib/constants.ts
 const REDIS_URL = process.env.REDIS_URL || process.env.KV_URL;
 const LANYARD_WS_URL = 'wss://api.lanyard.rest/socket';
-const MAX_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days
-const STREAK_MINUTES_THRESHOLD = 10;
-const MAX_ACTIVITIES_PER_USER = 100;
+const MAX_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days - matches CACHE_CONFIG.MAX_AGE_MS
+const STREAK_MINUTES_THRESHOLD = 10; // matches STREAK_CONFIG.MINUTES_THRESHOLD
+const MAX_ACTIVITIES_PER_USER = 100; // matches STREAK_CONFIG.MAX_ACTIVITIES_PER_USER
 
 if (!REDIS_URL) {
   console.error('Error: REDIS_URL or KV_URL environment variable is required.');
@@ -31,12 +32,15 @@ let heartbeatInterval = null;
 const userStates = new Map(); // Store previous state to detect changes
 
 // Helper to get Redis keys
+// Note: These should match RedisKeys in src/lib/redis.ts
 const getKey = (userId) => `discord-activities:${userId}`;
 const getStreakKey = (userId) => `discord-streaks:${userId}`;
 const getHistoryKey = (userId) => `discord-history:${userId}`;
 const getInternalStateKey = (userId) => `discord-internal-state:${userId}`;
+const getTrackedUsersKey = () => 'discord-activities:tracked-users';
 
-// Sanitize activity name (copied from validation logic)
+// Sanitize activity name
+// Note: This should match sanitizeActivityName in src/lib/utils/validation.ts
 function sanitizeActivityName(name) {
   if (!name) return '';
   const trimmed = name.trim().slice(0, 128);
@@ -207,6 +211,7 @@ async function updateHistory(userId, newData) {
 }
 
 // Update streaks logic
+// Note: This logic should match updateStreakRecord in src/lib/utils/streaks.ts
 async function updateStreaks(userId, activities) {
   try {
     const streakKey = getStreakKey(userId);
@@ -214,8 +219,7 @@ async function updateStreaks(userId, activities) {
     const streaks = storedStreaksJson ? JSON.parse(storedStreaksJson) : {};
     let streaksUpdated = false;
 
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
 
     for (const activity of activities) {
       if ((activity.type === 0 || activity.type === 5) && activity.name && activity.timestamps?.start) {
@@ -227,24 +231,28 @@ async function updateStreaks(userId, activities) {
 
         const record = streaks[title] || { lastDate: '', days: 0, minutesToday: 0 };
         const startTimestamp = activity.timestamps.start;
-        const mins = Math.floor((Date.now() - startTimestamp) / 60000);
+        
+        // Calculate minutes played if start timestamp provided
+        if (startTimestamp && typeof startTimestamp === 'number') {
+          const mins = Math.floor((Date.now() - startTimestamp) / 60000);
+          const newMinutesToday = Math.max(record.minutesToday, mins);
+          if (newMinutesToday !== record.minutesToday) {
+            record.minutesToday = newMinutesToday;
+            streaksUpdated = true;
+          }
+        }
 
         // Update streak if it's a new day
         if (record.lastDate !== today) {
+          // If previous day had enough minutes, increment streak, otherwise reset to 1
           if (record.minutesToday >= STREAK_MINUTES_THRESHOLD) {
             record.days = (record.days || 0) + 1;
           } else {
             record.days = 1;
           }
-          record.minutesToday = 0;
+          record.minutesToday = 0; // Reset for new day
           record.lastDate = today;
           streaksUpdated = true;
-        }
-
-        // Update minutes for today
-        if (mins > record.minutesToday) {
-            record.minutesToday = Math.max(record.minutesToday, mins);
-            streaksUpdated = true;
         }
 
         streaks[title] = record;
@@ -361,7 +369,7 @@ async function main() {
   console.log('Connected to Redis');
 
   // Load tracked users
-  const trackedUsersKey = 'discord-activities:tracked-users';
+  const trackedUsersKey = getTrackedUsersKey();
   const trackedUsersJson = await redis.get(trackedUsersKey);
   if (trackedUsersJson) {
     const users = JSON.parse(trackedUsersJson);

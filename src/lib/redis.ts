@@ -2,16 +2,28 @@ import { createClient } from 'redis';
 
 let redis: ReturnType<typeof createClient> | null = null;
 
+/**
+ * Get or create Redis client singleton
+ * Handles connection pooling and reconnection automatically
+ */
 export async function getRedisClient() {
   if (redis && redis.isOpen) return redis;
 
   try {
     const redisUrl = process.env.KV_URL || process.env.REDIS_URL;
-    if (!redisUrl) throw new Error('Redis URL not configured');
+    if (!redisUrl) {
+      throw new Error('Redis URL not configured. Please set KV_URL or REDIS_URL environment variable.');
+    }
 
     const needsTls = redisUrl.startsWith('rediss://') || redisUrl.includes(':6380');
-    // Simple reconnect strategy: wait 100ms * retries, up to 3s
-    const reconnectStrategy = (retries: number) => Math.min(retries * 100, 3000);
+    
+    // Reconnect strategy: wait 100ms * retries, up to 3s, max 10 retries
+    const reconnectStrategy = (retries: number) => {
+      if (retries > 10) {
+        return new Error('Too many reconnection attempts');
+      }
+      return Math.min(retries * 100, 3000);
+    };
 
     if (needsTls) {
       redis = createClient({
@@ -38,3 +50,16 @@ export async function getRedisClient() {
     throw error;
   }
 }
+
+/**
+ * Redis key generation utilities
+ * Centralized location for all Redis key patterns
+ */
+export const RedisKeys = {
+  activities: (userId: string) => `discord-activities:${userId}`,
+  streaks: (userId: string) => `discord-streaks:${userId}`,
+  history: (userId: string) => `discord-history:${userId}`,
+  rawgKey: (userId: string) => `discord-rawg-key:${userId}`,
+  trackedUsers: () => 'discord-activities:tracked-users',
+  internalState: (userId: string) => `discord-internal-state:${userId}`,
+} as const;

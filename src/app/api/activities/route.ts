@@ -1,47 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { createClient } from 'redis';
-import type { LanyardActivity, LanyardSpotify } from '@/lib/types/lanyard';
 import { isValidDiscordId } from '@/lib/utils/validation';
 import { fetchLanyardData } from '@/lib/api/lanyard';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { getRedisClient } from '@/lib/redis';
-
-// Activity data structure stored in Redis
-interface ActivityData {
-  activities: LanyardActivity[];
-  spotify: LanyardSpotify | null;
-  updatedAt: number;
-}
-
-// Clean up old entries (older than 90 days)
-const MAX_AGE = 90 * 24 * 60 * 60 * 1000;
-
-// Helper function to get Redis key for a user
-function getKey(userId: string): string {
-  return `discord-activities:${userId}`;
-}
-
-// Helper function to get Redis key for activity history
-function getHistoryKey(userId: string): string {
-  return `discord-history:${userId}`;
-}
-
-// Helper function to get Redis key for tracked users list
-function getTrackedUsersKey(): string {
-  return 'discord-activities:tracked-users';
-}
+import { getRedisClient, RedisKeys } from '@/lib/redis';
+import type { ActivityData } from '@/lib/types/redis';
+import { CACHE_CONFIG } from '@/lib/constants';
 
 // Track a user ID for background updates
 async function trackUser(userId: string, client: ReturnType<typeof createClient>): Promise<void> {
   try {
-    const trackedUsersKey = getTrackedUsersKey();
+    const trackedUsersKey = RedisKeys.trackedUsers();
     const trackedUsersJson = await client.get(trackedUsersKey);
     const trackedUsers: string[] = trackedUsersJson ? JSON.parse(trackedUsersJson) : [];
     
     if (!trackedUsers.includes(userId)) {
       trackedUsers.push(userId);
-      const ttlSeconds = Math.floor(MAX_AGE / 1000);
+      const ttlSeconds = Math.floor(CACHE_CONFIG.MAX_AGE_MS / 1000);
       await client.setEx(trackedUsersKey, ttlSeconds, JSON.stringify(trackedUsers));
     }
   } catch (error) {
@@ -71,9 +47,9 @@ export async function GET(request: NextRequest) {
     try {
       const client = await getRedisClient();
       
-      const key = getKey(userId);
+      const key = RedisKeys.activities(userId);
       const storedJson = await client.get(key);
-      const historyKey = getHistoryKey(userId);
+      const historyKey = RedisKeys.history(userId);
       // Public users can see history too
       const historyJsonList = await client.lRange(historyKey, 0, 19);
       const history = historyJsonList.map(item => JSON.parse(item));
@@ -81,7 +57,7 @@ export async function GET(request: NextRequest) {
       let cachedData: ActivityData | null = null;
       if (storedJson) {
         const parsed = JSON.parse(storedJson) as ActivityData;
-        if (parsed && now - parsed.updatedAt <= MAX_AGE) {
+        if (parsed && now - parsed.updatedAt <= CACHE_CONFIG.MAX_AGE_MS) {
           cachedData = parsed;
         }
       }
@@ -116,14 +92,14 @@ export async function GET(request: NextRequest) {
 
           if (freshActivities.length > 0 || freshSpotify) {
             const freshData: ActivityData = { activities: freshActivities, spotify: freshSpotify, updatedAt: now };
-            await client.setEx(key, Math.floor(MAX_AGE / 1000), JSON.stringify(freshData));
+            await client.setEx(key, Math.floor(CACHE_CONFIG.MAX_AGE_MS / 1000), JSON.stringify(freshData));
             await trackUser(userId, client);
             return NextResponse.json({ activities: freshActivities, spotify: freshSpotify, history, isVerified: true, updatedAt: now });
           } else {
             // Online but no activities
             if (userStatus !== 'offline' && userStatus !== 'invisible') {
               const emptyData = { activities: [], spotify: null, updatedAt: now };
-              await client.setEx(key, Math.floor(MAX_AGE / 1000), JSON.stringify(emptyData));
+              await client.setEx(key, Math.floor(CACHE_CONFIG.MAX_AGE_MS / 1000), JSON.stringify(emptyData));
               return NextResponse.json({ activities: [], spotify: null, history, isVerified: true, updatedAt: now });
             }
             // Offline - fallback to cache

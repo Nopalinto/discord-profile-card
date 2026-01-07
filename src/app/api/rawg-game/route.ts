@@ -1,65 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from 'redis';
 import { isValidDiscordId } from '@/lib/utils/validation';
 import { searchGame, getGameImageUrl } from '@/lib/api/rawg';
 import { decrypt } from '@/lib/encryption';
-
-// Helper function to get Redis key for a user's RAWG API key
-function getKey(userId: string): string {
-  return `discord-rawg-key:${userId}`;
-}
-
-// Initialize Redis client
-let redis: ReturnType<typeof createClient> | null = null;
-
-async function getRedisClient() {
-  if (redis && redis.isOpen) {
-    return redis;
-  }
-
-  try {
-    const redisUrl = process.env.KV_URL || process.env.REDIS_URL;
-    
-    if (!redisUrl) {
-      throw new Error('Redis URL not configured.');
-    }
-
-    const needsTls = redisUrl.startsWith('rediss://') || redisUrl.includes(':6380');
-    const reconnectStrategy = (retries: number) => {
-      if (retries > 10) {
-        return new Error('Too many reconnection attempts');
-      }
-      return Math.min(retries * 100, 3000);
-    };
-
-    if (needsTls) {
-      redis = createClient({
-        url: redisUrl,
-        socket: {
-          tls: true,
-          reconnectStrategy,
-        },
-      });
-    } else {
-      redis = createClient({
-        url: redisUrl,
-        socket: {
-          reconnectStrategy,
-        },
-      });
-    }
-
-    redis.on('error', (err) => {
-      console.error('Redis Client Error:', err);
-    });
-
-    await redis.connect();
-    return redis;
-  } catch (error) {
-    console.error('Failed to connect to Redis:', error);
-    throw error;
-  }
-}
+import { getRedisClient, RedisKeys } from '@/lib/redis';
 
 // GET: Fetch game data using server-stored API key
 export async function GET(request: NextRequest) {
@@ -85,7 +28,7 @@ export async function GET(request: NextRequest) {
     try {
       // Get API key from Redis
       const client = await getRedisClient();
-      const key = getKey(userId);
+      const key = RedisKeys.rawgKey(userId);
       const encryptedApiKey = await client.get(key);
       
       if (!encryptedApiKey) {
