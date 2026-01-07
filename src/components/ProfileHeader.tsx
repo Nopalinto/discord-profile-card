@@ -34,6 +34,7 @@ export interface ProfileHeaderProps {
   badgeList: BadgeInfo[];
   guildTags: GuildTag[];
   bannerUrl: string | null;
+  bannerColor?: string | null;
   avatarUrl: string;
   displayNameColorVariants: DisplayNameColorVariants;
   displayNameFontClass: string;
@@ -63,6 +64,7 @@ function ProfileHeaderComponent({
   badgeList,
   guildTags,
   bannerUrl,
+  bannerColor,
   avatarUrl,
   displayNameColorVariants,
   displayNameFontClass,
@@ -83,7 +85,13 @@ function ProfileHeaderComponent({
       <div
         className={`profile-banner ${bannerUrl ? 'has-banner' : ''}`}
         id="profile-banner"
-        style={bannerUrl ? { backgroundImage: `url(${sanitizeExternalURL(bannerUrl)})` } : undefined}
+        style={
+          bannerUrl 
+            ? { backgroundImage: `url(${sanitizeExternalURL(bannerUrl)})` } 
+            : bannerColor 
+              ? { backgroundColor: bannerColor } 
+              : undefined
+        }
       >
         <div className="banner-overlay"></div>
         <div className="status-badge">
@@ -207,6 +215,7 @@ const areEqual = (prev: ProfileHeaderProps, next: ProfileHeaderProps) => (
   prev.customStatus?.emoji === next.customStatus?.emoji &&
   prev.customStatus?.text === next.customStatus?.text &&
   prev.bannerUrl === next.bannerUrl &&
+  prev.bannerColor === next.bannerColor &&
   prev.hideBadges === next.hideBadges &&
   prev.hideServerTag === next.hideServerTag &&
   prev.hideLastSeen === next.hideLastSeen &&

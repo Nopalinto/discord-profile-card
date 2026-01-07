@@ -116,16 +116,16 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
       <div className="activity-card-body">
         <div className="activity-content">
           <div className="activity-image">
-            <img 
-              data-aid={aid}
-              alt={escapeHtml(bigTip) || 'Activity image'} 
-              src={sanitizeExternalURL(largeUrl)} 
-              data-tip={escapeHtml(bigTip)}
-              style={{
-                opacity: rawgLoading ? 0.7 : 1,
-                transition: 'opacity 0.3s ease',
-              }}
-            />
+            {largeUrl ? (
+              <img 
+                data-aid={aid}
+                alt={escapeHtml(bigTip) || 'Activity image'} 
+                src={sanitizeExternalURL(largeUrl)} 
+                className="large-image"
+              />
+            ) : (
+              <div className="large-image-placeholder" />
+            )}
             {smallUrl && (
               <div className="smallImageContainer_ef9ae7 activity-small-thumbnail" data-tip={escapeHtml(smallTip)}>
                 <img 

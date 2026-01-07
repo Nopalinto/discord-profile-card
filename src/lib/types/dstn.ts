@@ -6,6 +6,13 @@ export interface DstnUser {
   display_name?: string;
   global_name?: string;
   avatar?: string;
+  banner_color?: string;
+  accent_color?: number;
+  display_name_styles?: {
+    font_id?: number;
+    effect_id?: number;
+    colors?: number[];
+  };
   primary_guild?: {
     tag: string;
     identity_guild_id: string;

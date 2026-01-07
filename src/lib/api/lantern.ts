@@ -15,6 +15,8 @@ export async function fetchLanternData(userId: string, bypassCache = false): Pro
     { bypassCache }
   );
 
+  console.log('DEBUG: fetchLanternData response:', data);
+
   if (!data) return null;
 
   // Cache successful result with TTL - shorter TTL for faster updates

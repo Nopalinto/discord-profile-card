@@ -425,6 +425,11 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
   const guildTags = useMemo(() => extractGuildTags(lanyard, dstn), [lanyard, dstn]);
   const customStatus = useMemo(() => getCustomStatus(lanyard), [lanyard]);
   const bannerUrl = useMemo(() => getBannerUrl(lanyard, dstn, params?.bannerUrl), [lanyard, dstn, params?.bannerUrl]);
+  const bannerColor = useMemo(() => {
+    if (dstnUser?.banner_color) return dstnUser.banner_color;
+    if (dstnUser?.accent_color) return `#${dstnUser.accent_color.toString(16).padStart(6, '0')}`;
+    return null;
+  }, [dstnUser]);
   const lastSeen = useMemo(() => formatLastSeenTime(lantern), [lantern]);
   
   // Get display name color (from params or accent color from theme)
@@ -728,37 +733,19 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
     }
   }, [status, lanyard?.spotify, lastKnownSpotify]);
 
-  // Apply theme colors if default scheme
-  useEffect(() => {
-    const profileCard = document.querySelector('.discord-profile-card');
-    const outerContainer = document.querySelector('.outer_c0bea0');
-    
-    // If transparent is enabled, set background to transparent
+  // Compute card background style
+  const cardBackgroundStyle = useMemo(() => {
     if (params?.transparent) {
-      if (profileCard) {
-        profileCard.setAttribute('style', 'background: transparent !important; backdrop-filter: none; -webkit-backdrop-filter: none;');
-      }
-      if (outerContainer && outerContainer instanceof HTMLElement) {
-        outerContainer.style.background = 'transparent';
-        outerContainer.style.border = 'none';
-        outerContainer.style.boxShadow = 'none';
-      }
-      return;
+      return { 
+        background: 'transparent', 
+        backdropFilter: 'none', 
+        WebkitBackdropFilter: 'none' 
+      };
     }
-    
-    // Reset outer container styles when not transparent
-    if (outerContainer && outerContainer instanceof HTMLElement) {
-      outerContainer.style.background = '';
-      outerContainer.style.border = '';
-      outerContainer.style.boxShadow = '';
-    }
-    
-    if (!profileCard) return;
 
     const colorScheme = params?.colorScheme || 'default';
     
     if (colorScheme === 'default' && dstn?.user_profile?.theme_colors && Array.isArray(dstn.user_profile.theme_colors) && dstn.user_profile.theme_colors.length >= 2) {
-      // Apply Discord theme colors
       const color1Hex = dstn.user_profile.theme_colors[0];
       const color2Hex = dstn.user_profile.theme_colors[1];
       
@@ -769,26 +756,32 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
       const g2 = (color2Hex >> 8) & 255;
       const b2 = color2Hex & 255;
       
-      // Convert to HSL (simplified - would need full conversion)
-      profileCard.setAttribute('style', `background: linear-gradient(180deg, rgb(${r1},${g1},${b1}) 0%, rgb(${r2},${g2},${b2}) 100%)`);
+      return { background: `linear-gradient(180deg, rgb(${r1},${g1},${b1}) 0%, rgb(${r2},${g2},${b2}) 100%)` };
     } else if (colorScheme === 'dark') {
-      profileCard.setAttribute('style', 'background: linear-gradient(180deg, #2f3136 0%, #23272a 100%)');
+      return { background: 'linear-gradient(180deg, #2f3136 0%, #23272a 100%)' };
     } else if (colorScheme === 'light') {
-      profileCard.setAttribute('style', 'background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%)');
+      return { background: 'linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%)' };
     } else if (colorScheme === 'custom' && params?.primaryColor && params?.accentColor) {
-      // Validate hex codes to prevent CSS injection
       const isValidHex = (color: string) => /^[0-9A-Fa-f]{6}$/.test(color);
-      
       if (isValidHex(params.primaryColor) && isValidHex(params.accentColor)) {
-        profileCard.setAttribute('style', `background: linear-gradient(135deg, #${params.primaryColor} 0%, #${params.accentColor} 100%)`);
-      } else {
-        // Fallback to default if invalid
-        profileCard.removeAttribute('style');
+        return { background: `linear-gradient(135deg, #${params.primaryColor} 0%, #${params.accentColor} 100%)` };
       }
-    } else {
-      profileCard.removeAttribute('style');
     }
+    
+    return {};
   }, [params?.colorScheme, params?.primaryColor, params?.accentColor, params?.transparent, dstn]);
+
+  // Compute outer container style for transparency
+  const outerContainerStyle = useMemo(() => {
+    if (params?.transparent) {
+      return {
+        background: 'transparent',
+        border: 'none',
+        boxShadow: 'none',
+      };
+    }
+    return {};
+  }, [params?.transparent]);
 
   // Ensure sections expand properly after render
   useEffect(() => {
@@ -923,10 +916,11 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
         '--profile-gradient-overlay-color': getThemeColors.overlayColor,
         '--profile-gradient-button-color': getThemeColors.buttonColor,
         '--profile-gradient-modal-background-color': getThemeColors.modalBgColor,
+        ...outerContainerStyle
       } as React.CSSProperties}
     >
       <div className="inner_c0bea0">
-        <div className="discord-profile-card" style={{ margin: '0 auto' }}>
+        <div className="discord-profile-card" style={{ margin: '0 auto', ...cardBackgroundStyle }}>
           <ProfileHeader
             user={user}
             displayName={displayName}
@@ -940,6 +934,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
             badgeList={badges}
             guildTags={guildTags}
             bannerUrl={bannerUrl}
+            bannerColor={bannerColor}
             avatarUrl={avatarUrl}
             displayNameColorVariants={displayNameColorVariants}
             displayNameFontClass={displayNameFontClass}

@@ -169,11 +169,85 @@ function HomePageContent() {
     false
   );
 
+  const isInLantern = useMemo(() => {
+    if (!userId || !isValidDiscordId(userId)) return true;
+    if (loading) return true; // Don't show red while loading
+    
+    // If we have lantern data, they are being tracked (likely in the server)
+    return !!lantern; 
+  }, [userId, lantern, loading]);
+
+  // Mappings for Discord font and effect IDs (updated for Lantern)
+  const FONT_ID_MAP: Record<number, string> = {
+    11: 'gg-sans',
+    12: 'tempo',
+    3: 'sakura',
+    4: 'jellybean',
+    6: 'modern',
+    7: 'medieval',
+    8: '8bit',
+    10: 'vampyre'
+  };
+
+  const EFFECT_ID_MAP: Record<number, string> = {
+    1: 'solid',
+    2: 'gradient',
+    3: 'neon',
+    4: 'toon',
+    5: 'pop'
+  };
+
+  // Helper to convert decimal color to hex
+  const decimalToHex = (decimal: number) => {
+    return `#${decimal.toString(16).padStart(6, '0')}`.toUpperCase();
+  };
+
   // Set initial color from user's Discord theme color when API data loads
   useEffect(() => {
-    if (!loading && dstn?.user_profile?.theme_colors && !hasSetColorFromApi) {
-      const themeColors = dstn.user_profile.theme_colors;
-      if (Array.isArray(themeColors) && themeColors.length >= 2) {
+    if (!loading && (lantern || dstn) && !hasSetColorFromApi) {
+      // Check lantern first, then dstn for display name styles
+      const styles = lantern?.display_name_styles || 
+                     lantern?.user?.display_name_styles || 
+                     dstn?.user?.display_name_styles;
+      
+      console.log('DEBUG: Found Styles:', styles);
+      
+      // If user has official Discord display name styles, apply them
+      if (styles) {
+        if (styles.font_id && FONT_ID_MAP[styles.font_id]) {
+          setDisplayNameFont(FONT_ID_MAP[styles.font_id]);
+        }
+        
+        if (styles.effect_id && EFFECT_ID_MAP[styles.effect_id]) {
+          setDisplayNameEffect(EFFECT_ID_MAP[styles.effect_id]);
+        }
+
+        if (styles.colors && styles.colors.length > 0) {
+          const mainColor = decimalToHex(styles.colors[0]);
+          setDisplayNameColor(mainColor);
+          setDisplayNameGradientStart(mainColor);
+          
+          if (styles.colors.length > 1) {
+            setDisplayNameGradientEnd(decimalToHex(styles.colors[1]));
+          } else {
+            // If only one color but effect is gradient, generate an end color
+            const r = (styles.colors[0] >> 16) & 255;
+            const g = (styles.colors[0] >> 8) & 255;
+            const b = styles.colors[0] & 255;
+            const lightR = Math.min(255, r + 50);
+            const lightG = Math.min(255, g + 50);
+            const lightB = Math.min(255, b + 50);
+            setDisplayNameGradientEnd(`#${lightR.toString(16).padStart(2, '0')}${lightG.toString(16).padStart(2, '0')}${lightB.toString(16).padStart(2, '0')}`.toUpperCase());
+          }
+        }
+        
+        setHasSetColorFromApi(true);
+        return;
+      }
+      
+      // Fallback to dstn theme colors if no display name styles found
+      const themeColors = dstn?.user_profile?.theme_colors;
+      if (themeColors && Array.isArray(themeColors) && themeColors.length >= 2) {
         // Convert accent color (index 1) from hex number to hex string
         const accentColorHex = themeColors[1];
         const r = (accentColorHex >> 16) & 255;
@@ -181,11 +255,9 @@ function HomePageContent() {
         const b = accentColorHex & 255;
         const hexString = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`.toUpperCase();
         
-        // Set the color if it hasn't been manually changed
         setDisplayNameColor(hexString);
         setDisplayNameGradientStart(hexString);
         
-        // Generate a lighter variant for gradient end
         const lightR = Math.min(255, r + 50);
         const lightG = Math.min(255, g + 50);
         const lightB = Math.min(255, b + 50);
@@ -193,9 +265,18 @@ function HomePageContent() {
         setDisplayNameGradientEnd(lightHexString);
         
         setHasSetColorFromApi(true);
+        return;
       }
+
+      // If no styles and no theme colors, reset to defaults (White, Solid, GG Sans)
+      setDisplayNameFont('gg-sans');
+      setDisplayNameEffect('solid');
+      setDisplayNameColor('#FFFFFF');
+      setDisplayNameGradientStart('#FFFFFF');
+      setDisplayNameGradientEnd('#FFFFFF');
+      setHasSetColorFromApi(true);
     }
-  }, [dstn, loading, hasSetColorFromApi]);
+  }, [lantern, dstn, loading, hasSetColorFromApi]);
 
   // Reset the flag when userId changes
   useEffect(() => {
@@ -264,6 +345,7 @@ function HomePageContent() {
   }, [userId, urlParams]);
 
   useEffect(() => {
+    setIframeHeight(520);
     requestHeight();
   }, [previewUrl, requestHeight]);
 
@@ -648,6 +730,7 @@ function HomePageContent() {
                         <UserIdInput 
                           value={userId} 
                           onChange={setUserId} 
+                          isInLantern={isInLantern}
                         />
                       ),
                     },

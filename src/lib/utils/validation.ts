@@ -7,6 +7,12 @@ export function isValidDiscordId(id: string | null | undefined): boolean {
 
 export function sanitizeExternalURL(url: string): string {
   if (!url) return '';
+  
+  // Allow data URIs for images (used for placeholders)
+  if (url.startsWith('data:image/')) {
+    return url;
+  }
+
   try {
     const parsed = new URL(url);
     // Only allow http/https protocols
