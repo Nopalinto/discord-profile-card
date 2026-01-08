@@ -7,6 +7,14 @@ import type { BadgeInfo, GuildTag } from '@/lib/types/discord';
 import { normalizeStatus } from './formatting';
 import { sanitizeExternalURL } from './validation';
 
+export function resolveAssetImage(appId: string | undefined, key: string | undefined, externalUrl?: string): string {
+  if (key === 'external' && externalUrl) return externalUrl;
+  if (!key) return '';
+  if (String(key).startsWith('mp:')) return `https://media.discordapp.net/${String(key).slice(3)}`;
+  if (appId && /^[0-9]+$/.test(String(appId))) return `https://cdn.discordapp.com/app-assets/${appId}/${key}.png`;
+  return '';
+}
+
 const BADGE_FLAGS: Record<number, { name: string; icon: string }> = {
   1: { name: 'Discord Staff', icon: 'https://cdn.discordapp.com/badge-icons/5e74e9b61934ec1ca76d772cc9adc3e2.png' },
   2: { name: 'Partnered Server Owner', icon: 'https://cdn.discordapp.com/badge-icons/3f9748e53446a137a052f3454e2de45e.png' },
@@ -26,7 +34,7 @@ const BADGE_FLAGS: Record<number, { name: string; icon: string }> = {
 
 export function decodeBadgesFromFlags(publicFlags: number): BadgeInfo[] {
   if (!publicFlags || publicFlags === 0) return [];
-  
+
   const badges: BadgeInfo[] = [];
   for (const [flag, badgeInfo] of Object.entries(BADGE_FLAGS)) {
     if ((publicFlags & parseInt(flag)) !== 0) {
@@ -51,12 +59,12 @@ export function extractBadges(lanyard: LanyardResponse['data'] | null, dstn: Dst
       link: badge.link || '',
     }));
   }
-  
+
   // Fallback to Lanyard API (decode from public_flags)
   if (lanyard?.discord_user?.public_flags) {
     return decodeBadgesFromFlags(lanyard.discord_user.public_flags);
   }
-  
+
   return [];
 }
 
@@ -66,10 +74,10 @@ export function extractGuildTags(lanyard: LanyardResponse['data'] | null, dstn: 
 
   const addGuildTag = (tagName: string, guildId?: string, badgeUrl?: string) => {
     if (!tagName) return;
-    
+
     const tagNameLower = tagName.toLowerCase();
     const uniqueKey = guildId ? `${guildId}_${tagNameLower}` : tagNameLower;
-    
+
     if (!seenTagNames.has(uniqueKey)) {
       seenTagNames.add(uniqueKey);
       guildTags.push({
@@ -126,7 +134,7 @@ export function extractGuildTags(lanyard: LanyardResponse['data'] | null, dstn: 
       const tagObj = typeof tag === 'string' ? { name: tag, text: tag } : tag;
       const tagName = tagObj.name || tagObj.text || tagObj.guild_name || '';
       const guildId = tagObj.guild_id || tagObj.identity_guild_id || '';
-      
+
       if (tagName) {
         let badgeUrl = '';
         if (tagObj.icon) {
@@ -165,17 +173,17 @@ export function getAvatarUrl(user: LanyardResponse['data']['discord_user'] | nul
     const defaultAvatarNum = parseInt(user?.discriminator || '0') % 5;
     return `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNum}.png`;
   }
-  
+
   return 'https://cdn.discordapp.com/embed/avatars/0.png';
 }
 
 export function getDisplayName(user: LanyardResponse['data']['discord_user'] | null, dstnUser: DstnResponse['user'] | null): string {
-  return dstnUser?.global_name || 
-         dstnUser?.display_name || 
-         user?.global_name || 
-         user?.display_name || 
-         user?.username || 
-         'User';
+  return dstnUser?.global_name ||
+    dstnUser?.display_name ||
+    user?.global_name ||
+    user?.display_name ||
+    user?.username ||
+    'User';
 }
 
 export function getUsername(user: LanyardResponse['data']['discord_user'] | null): string {
@@ -184,7 +192,7 @@ export function getUsername(user: LanyardResponse['data']['discord_user'] | null
 
 export function getBannerUrl(lanyard: LanyardResponse['data'] | null, dstn: DstnResponse | null, customBannerUrl?: string): string | null {
   if (customBannerUrl) return customBannerUrl;
-  
+
   // Try dstn.to API first
   if (dstn?.user_profile?.banner) {
     const bannerHash = dstn.user_profile.banner;
@@ -192,7 +200,7 @@ export function getBannerUrl(lanyard: LanyardResponse['data'] | null, dstn: Dstn
     const extension = bannerHash.startsWith('a_') ? 'gif' : 'png';
     return `https://cdn.discordapp.com/banners/${dstn.user.id}/${bannerHash}.${extension}?size=1024`;
   }
-  
+
   // Fallback to Lanyard (if available in future)
   return null;
 }
@@ -215,9 +223,9 @@ export function getCustomStatus(lanyard: LanyardResponse['data'] | null): { emoj
 
 export function formatLastSeenTime(lantern: LanternResponse | null): string | null {
   if (!lantern) return null;
-  
+
   let mostRecent: number | null = null;
-  
+
   // Try new API structure first (last_seen_at with unix timestamp)
   if (lantern.last_seen_at?.unix) {
     // Convert from seconds to milliseconds
@@ -231,11 +239,11 @@ export function formatLastSeenTime(lantern: LanternResponse | null): string | nu
       mostRecent = Math.max(...timestamps);
     }
   }
-  
+
   if (!mostRecent) return null;
-  
+
   const diffMs = Date.now() - mostRecent;
-  
+
   const seconds = Math.floor(diffMs / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);

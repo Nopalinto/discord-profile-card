@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { LanyardActivity } from '@/lib/types/lanyard';
 import { sanitizeExternalURL, escapeHtml } from '@/lib/utils/validation';
 import { msToHMS } from '@/lib/utils/formatting';
+import { resolveAssetImage } from '@/lib/utils/profile';
 import { useRawgGame } from '@/hooks/useRawgGame';
 import { useStreak } from '@/hooks/useStreak';
 
@@ -14,15 +15,6 @@ interface ActivityCardProps {
 }
 
 const ICON_VSCODE = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path fill="#007ACC" d="M243.7 49.7 192 32 76 139.1 125.5 188z"/><path fill="#1F9CF0" d="m192 32-16.5 192 68.2-29.7V49.7z"/><path fill="#0065A9" d="m44.3 105.9 81.2 81.2 21.3-21.3-60-60L44.3 105.9z"/><path fill="#1F9CF0" d="m44.3 150.1 31.3 31.3 61.2-61.2-21.3-21.3-71.2 51.2z"/></svg>`);
-
-function resolveAssetImage(appId: string | undefined, key: string | undefined, externalUrl?: string): string {
-  if (key === 'external' && externalUrl) return externalUrl;
-  if (!key) return '';
-  if (String(key).startsWith('mp:')) return `https://media.discordapp.net/${String(key).slice(3)}`;
-  if (appId && /^[0-9]+$/.test(String(appId))) return `https://cdn.discordapp.com/app-assets/${appId}/${key}.png`;
-  return '';
-}
-
 function placeholder(w: number, h: number): string {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'>
     <defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
@@ -62,18 +54,27 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
   const { streak, updateStreak } = useStreak(userId, activity.name);
 
   useEffect(() => {
-    if (!activity.timestamps?.start || hideTimestamp) return;
+    if ((!activity.timestamps?.start && !activity.timestamps?.end) || hideTimestamp) return;
 
     const updateElapsed = () => {
-      const started = activity.timestamps?.start ?? Date.now();
-      setElapsed(msToHMS(Math.max(0, Date.now() - started)));
+      // Optimization: Don't trigger re-renders if tab is hidden
+      if (typeof document !== 'undefined' && document.hidden) return;
+
+      if (activity.timestamps?.end && !activity.timestamps?.start) {
+        // Count down
+        setElapsed(msToHMS(Math.max(0, activity.timestamps.end - Date.now())));
+      } else {
+        // Count up (standard elapsed)
+        const started = activity.timestamps?.start ?? Date.now();
+        setElapsed(msToHMS(Math.max(0, Date.now() - started)));
+      }
     };
 
     updateElapsed();
     const interval = setInterval(updateElapsed, 1000);
 
     return () => clearInterval(interval);
-  }, [activity.timestamps?.start, hideTimestamp]);
+  }, [activity.timestamps?.start, activity.timestamps?.end, hideTimestamp]);
 
   // Update streak when activity starts or changes
   useEffect(() => {
@@ -95,7 +96,7 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
   const bigTip = activity.assets?.large_text || activity.details || activity.state || activity.name || 'Activity';
   const smallTip = activity.assets?.small_text || activity.name || 'App';
   const aid = activity.id || 'primary';
-  const hasElapsed = !!activity.timestamps?.start && !hideTimestamp;
+  const hasElapsed = (!!activity.timestamps?.start || !!activity.timestamps?.end) && !hideTimestamp;
   // Show streak even for recent activities (when hideTimestamp is true)
   const showStreak = activity.name && (activity.type === 0 || activity.type === 5) && streak > 0;
 
@@ -115,7 +116,7 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
       </header>
       <div className="activity-card-body">
         <div className="activity-content">
-          <div className="activity-image">
+          <div className="activity-image" data-tip={escapeHtml(bigTip)}>
             {largeUrl ? (
               <img
                 data-aid={aid}
@@ -148,14 +149,38 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
             {(hasElapsed || showStreak) && (
               <div className="elapsed-row flex-wrap justify-start">
                 {hasElapsed && (
-                  <div className="elapsed-pill">
-                    <svg className="clock" viewBox="0 0 24 24" aria-hidden="true">
-                      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2"></circle>
-                      <path d="M12 7v6l4 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-                    </svg>
-                    <span id={`activity-time-${aid}`}>{elapsed}</span>
-                    <span>elapsed</span>
-                  </div>
+                  // If both start and end exist -> Show Progress Bar
+                  activity.timestamps?.start && activity.timestamps?.end ? (
+                    <div className="w-full mt-1 mb-1">
+                      <div className="flex justify-between text-xs text-[#b5bac1] font-mono mb-1">
+                        <span>{elapsed}</span>
+                        <span>{msToHMS(Math.max(0, activity.timestamps.end - activity.timestamps.start))}</span>
+                      </div>
+                      <div className="h-1 bg-[#4e5058] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-white rounded-full transition-all duration-1000 ease-linear"
+                          style={{
+                            width: `${Math.min(100, Math.max(0, ((Date.now() - activity.timestamps.start) / (activity.timestamps.end - activity.timestamps.start)) * 100))}%`
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    // Otherwise default behavior
+                    <div className="elapsed-pill">
+                      <svg className="clock" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2"></circle>
+                        <path d="M12 7v6l4 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+                      </svg>
+                      <span id={`activity-time-${aid}`}>
+                        {/* If only end exists, show 'left', else 'elapsed' */}
+                        {activity.timestamps?.end && !activity.timestamps?.start
+                          ? `${msToHMS(Math.max(0, activity.timestamps.end - Date.now()))} left`
+                          : `${elapsed} elapsed`
+                        }
+                      </span>
+                    </div>
+                  )
                 )}
                 {showStreak && (
                   <div className="elapsed-pill" id={`streak-pill-${aid}`}>

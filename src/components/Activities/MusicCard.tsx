@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import type { LanyardSpotify, LanyardActivity } from '@/lib/types/lanyard';
 import { sanitizeExternalURL, escapeHtml } from '@/lib/utils/validation';
+import { resolveAssetImage } from '@/lib/utils/profile';
+import { msToMMSS } from '@/lib/utils/formatting';
 
 interface MusicCardProps {
   spotify?: LanyardSpotify | null;
@@ -14,21 +16,6 @@ interface MusicCardProps {
 const ICON_SPOTIFY = 'https://media.discordapp.net/external/SBL-oQIuwzsSwlKo6e2_hIFvUrQolyZmCjxmbMVinn4/https/live.musicpresence.app/v3/icons/spotify/discord-small-image.f4d35e7aa231.png';
 const ICON_APPLE = 'https://www.pngarts.com/files/8/Apple-Music-Logo-PNG-Photo.png';
 const ICON_TIDAL = 'https://media.discordapp.net/external/2jxHB9nItvOmWpcwXFv-wjFM_aChrDpu86tCHAZo9Cg/https/live.musicpresence.app/v3/icons/tidal/discord-small-image.1b03069cc4c3.png';
-
-function resolveAssetImage(appId: string | undefined, key: string | undefined): string {
-  if (!key) return '';
-  if (String(key).startsWith('mp:')) return `https://media.discordapp.net/${String(key).slice(3)}`;
-  if (appId && /^[0-9]+$/.test(String(appId))) return `https://cdn.discordapp.com/app-assets/${appId}/${key}.png`;
-  return '';
-}
-
-function msToMMSS(ms: number): string {
-  ms = Math.max(0, Math.floor(ms));
-  const t = Math.floor(ms / 1000);
-  const m = Math.floor(t / 60);
-  const s = t % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
 
 export function MusicCard({ spotify, activity, type = 'spotify', hideTimestamp = false }: MusicCardProps) {
   const [progress, setProgress] = useState(0);
@@ -62,6 +49,8 @@ export function MusicCard({ spotify, activity, type = 'spotify', hideTimestamp =
     if (!start || hideTimestamp) return;
 
     const updateProgress = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+
       const now = Date.now();
       if (start && end) {
         const totalMs = Math.max(1, end - start);
@@ -93,9 +82,9 @@ export function MusicCard({ spotify, activity, type = 'spotify', hideTimestamp =
         <div className="activity-header-right">
           <button className="activity-context-menu" aria-label="Options" title="Options">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="5" cy="12" r="2" fill="currentColor"/>
-              <circle cx="12" cy="12" r="2" fill="currentColor"/>
-              <circle cx="19" cy="12" r="2" fill="currentColor"/>
+              <circle cx="5" cy="12" r="2" fill="currentColor" />
+              <circle cx="12" cy="12" r="2" fill="currentColor" />
+              <circle cx="19" cy="12" r="2" fill="currentColor" />
             </svg>
           </button>
         </div>
@@ -103,10 +92,10 @@ export function MusicCard({ spotify, activity, type = 'spotify', hideTimestamp =
       <div className="activity-card-body">
         <div className="activity-content">
           <div className="activity-image">
-            <img 
-              alt={escapeHtml(title || serviceName) || 'Album art'} 
-              src={sanitizeExternalURL(art) || sanitizeExternalURL(icon)} 
-              data-tip={escapeHtml(title || serviceName)} 
+            <img
+              alt={escapeHtml(title || serviceName) || 'Album art'}
+              src={sanitizeExternalURL(art) || sanitizeExternalURL(icon)}
+              data-tip={escapeHtml(title || serviceName)}
             />
             <div className="smallImageContainer_ef9ae7 activity-small-thumbnail" data-tip={serviceName}>
               <img className="contentImage__42bf5 contentImage_ef9ae7" alt={serviceName} src={sanitizeExternalURL(icon)} />
@@ -121,8 +110,8 @@ export function MusicCard({ spotify, activity, type = 'spotify', hideTimestamp =
               <div className="activity-progress-container">
                 <div className="activity-progress-time">{elapsed}</div>
                 <div className="activity-progress-bar">
-                  <div 
-                    className={`activity-progress-fill ${type}`} 
+                  <div
+                    className={`activity-progress-fill ${type}`}
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>

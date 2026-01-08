@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     const now = Date.now();
     try {
       const client = await getRedisClient();
-      
+
       const key = RedisKeys.activities(userId);
       const storedJson = await client.get(key);
       const historyKey = RedisKeys.history(userId);
@@ -62,12 +62,12 @@ export async function GET(request: NextRequest) {
       // IF NOT OWNER: Return cached data only
       if (!isOwner) {
         if (cachedData) {
-          return NextResponse.json({ 
-            activities: cachedData.activities, 
-            spotify: cachedData.spotify, 
-            history, 
-            isVerified: false, 
-            updatedAt: cachedData.updatedAt 
+          return NextResponse.json({
+            activities: cachedData.activities,
+            spotify: cachedData.spotify,
+            history,
+            isVerified: false,
+            updatedAt: cachedData.updatedAt
           });
         }
         return NextResponse.json({
@@ -79,9 +79,22 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      // IF OWNER: Fetch fresh data and update cache
+      // IF OWNER: Fetch fresh data and update cache (with throttling)
       try {
+        const lastFetchKey = `discord-last-fetch:${userId}`;
+        const lastFetch = await client.get(lastFetchKey);
+
+        // Thrift check: only fetch if > 3 seconds since last fetch
+        if (lastFetch && now - parseInt(lastFetch) < 3000) {
+          if (cachedData) {
+            return NextResponse.json({ ...cachedData, history, isVerified: true });
+          }
+          // If no cache but throttled, we must fetch or return empty used cached
+        }
+
         const lanyardData = await fetchLanyardData(userId, true);
+        await client.setEx(lastFetchKey, 10, String(now)); // Set throttle key
+
         if (lanyardData) {
           const freshActivities = lanyardData.activities || [];
           const freshSpotify = lanyardData.spotify || null;
@@ -109,7 +122,7 @@ export async function GET(request: NextRequest) {
       } catch (lanyardError) {
         if (cachedData) return NextResponse.json({ ...cachedData, history, isVerified: true });
       }
-      
+
       return NextResponse.json({ activities: null, spotify: null, history, isVerified: true, updatedAt: now });
 
     } catch (redisError) {

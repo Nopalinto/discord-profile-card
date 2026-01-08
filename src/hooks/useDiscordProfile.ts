@@ -73,15 +73,31 @@ export function useDiscordProfile(userId: string | null, autoUpdate = false, upd
       return;
     }
 
-    fetchProfile(userId);
+    let timeoutId: NodeJS.Timeout;
+    let failureCount = 0;
 
-    if (autoUpdate) {
-      const interval = setInterval(() => {
-        fetchProfile(userId);
-      }, updateInterval);
+    const poll = async () => {
+      // If we're auto-updating or this is the first run
+      try {
+        await fetchProfile(userId);
+        failureCount = 0; // Reset on success
 
-      return () => clearInterval(interval);
-    }
+        if (autoUpdate) {
+          timeoutId = setTimeout(poll, updateInterval);
+        }
+      } catch (err) {
+        failureCount++;
+        // Exponential backoff: 10s -> 20s -> 40s... max 5 min
+        const backoffDelay = Math.min(updateInterval * Math.pow(2, failureCount), 300000);
+        if (autoUpdate) {
+          timeoutId = setTimeout(poll, backoffDelay);
+        }
+      }
+    };
+
+    poll();
+
+    return () => clearTimeout(timeoutId);
   }, [userId, autoUpdate, updateInterval, fetchProfile]);
 
   return { ...profile, refetch: () => userId && fetchProfile(userId) };

@@ -36,6 +36,10 @@ function ActivitySectionsComponent({
   const historyActivities = history?.filter(h => h.type === 'activity') || [];
   const historySongs = history?.filter(h => h.type === 'spotify' || h.type === 'apple' || h.type === 'tidal') || [];
 
+  // Sort activities by priority
+  const sortedActivities = sortActivitiesByPriority(activities);
+
+
   return (
     <>
       {/* Show activities when online/idle/dnd */}
@@ -44,7 +48,7 @@ function ActivitySectionsComponent({
           className={`discord-activities-section flex-shrink-0 ${activities.length > 0 && !hideActivity ? 'has-content' : ''}`}
         >
           <div id="activities-list" className="activities-list">
-            {activities.length > 0 && !hideActivity && activities.map((activity, index) => (
+            {sortedActivities.length > 0 && !hideActivity && sortedActivities.map((activity, index) => (
               <ActivityCard
                 key={activity.id || index}
                 activity={activity}
@@ -167,6 +171,26 @@ const areEqual = (prev: ActivitySectionsProps, next: ActivitySectionsProps): boo
   prev.status === next.status &&
   prev.userId === next.userId
 );
+
+
+/**
+ * Sort activities by priority (listening > playing > others)
+ */
+export function sortActivitiesByPriority(
+  activities: LanyardActivity[]
+): LanyardActivity[] {
+  return [...activities].sort((a, b) => {
+    // Prioritize listening activities (music)
+    if (a.type === 2 && b.type !== 2) return -1;
+    if (b.type === 2 && a.type !== 2) return 1;
+
+    // Then prioritize playing games
+    if (a.type === 0 && b.type !== 0) return -1;
+    if (b.type === 0 && a.type !== 0) return 1;
+
+    return 0;
+  });
+}
 
 export const ActivitySections = React.memo(ActivitySectionsComponent, areEqual);
 

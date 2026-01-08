@@ -24,12 +24,26 @@ export interface LanyardActivity {
   id?: string;
   name: string;
   type: number; // 0: Playing, 1: Streaming, 2: Listening, 3: Watching, 4: Custom Status, 5: Competing
-  state?: string;
-  details?: string;
-  application_id?: string;
+  url?: string;
+  created_at?: number;
   timestamps?: {
     start?: number;
     end?: number;
+  };
+  application_id?: string;
+  details?: string;
+  details_url?: string;
+  state?: string;
+  state_url?: string;
+  emoji?: {
+    name: string;
+    id?: string;
+    animated?: boolean;
+    url?: string; // Sometimes provided
+  };
+  party?: {
+    id?: string;
+    size?: [number, number];
   };
   assets?: {
     large_image?: string;
@@ -37,17 +51,16 @@ export interface LanyardActivity {
     small_image?: string;
     small_text?: string;
   };
-  emoji?: {
-    name: string;
-    id?: string;
-    animated?: boolean;
+  secrets?: {
+    join?: string;
+    spectate?: string;
+    match?: string;
   };
-  party?: {
-    size?: [number, number];
-  };
+  buttons?: string[];
+  instance?: boolean;
+  flags?: number;
   sync_id?: string;
   session_id?: string;
-  flags?: number;
 }
 
 export interface LanyardSpotify {

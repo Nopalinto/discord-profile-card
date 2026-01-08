@@ -12,6 +12,14 @@ export function msToHMS(ms: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
+export function msToMMSS(ms: number): string {
+  ms = Math.max(0, Math.floor(ms));
+  const t = Math.floor(ms / 1000);
+  const m = Math.floor(t / 60);
+  const s = t % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 export function normalizeStatus(status: string | null | undefined): 'online' | 'idle' | 'dnd' | 'offline' {
   if (!status) return 'offline';
   return status === 'invisible' ? 'offline' : (status as 'online' | 'idle' | 'dnd' | 'offline');
