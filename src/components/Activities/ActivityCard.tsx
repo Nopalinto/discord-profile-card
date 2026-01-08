@@ -51,7 +51,7 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
 
   // Check if this is a game activity (Playing or Competing)
   const isGameActivity = activity.type === 0 || activity.type === 5;
-  
+
   // Fetch RAWG game data for game activities (API key is stored server-side)
   const { game: rawgGame, imageUrl: rawgImageUrl, loading: rawgLoading } = useRawgGame(
     isGameActivity ? activity.name : undefined,
@@ -87,8 +87,8 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
   // RAWG API is ONLY used as a fallback when Discord doesn't provide an image
   const discordLargeUrl = resolveAssetImage(activity.application_id, activity.assets?.large_image, (activity as any).assets?.external_url);
   const largeUrl = discordLargeUrl || rawgImageUrl || placeholder(120, 120);
-  
-  const smallUrl = resolveAssetImage(activity.application_id, activity.assets?.small_image, (activity as any).assets?.small_external_url) || 
+
+  const smallUrl = resolveAssetImage(activity.application_id, activity.assets?.small_image, (activity as any).assets?.small_external_url) ||
     (String(activity.name).toLowerCase().includes('code') ? ICON_VSCODE : '');
 
   // Keep original Discord tooltip (no RAWG metadata)
@@ -106,9 +106,9 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
         <div className="activity-header-right">
           <button className="activity-context-menu" aria-label="Options" title="Options">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="5" cy="12" r="2" fill="currentColor"/>
-              <circle cx="12" cy="12" r="2" fill="currentColor"/>
-              <circle cx="19" cy="12" r="2" fill="currentColor"/>
+              <circle cx="5" cy="12" r="2" fill="currentColor" />
+              <circle cx="12" cy="12" r="2" fill="currentColor" />
+              <circle cx="19" cy="12" r="2" fill="currentColor" />
             </svg>
           </button>
         </div>
@@ -117,10 +117,10 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
         <div className="activity-content">
           <div className="activity-image">
             {largeUrl ? (
-              <img 
+              <img
                 data-aid={aid}
-                alt={escapeHtml(bigTip) || 'Activity image'} 
-                src={sanitizeExternalURL(largeUrl)} 
+                alt={escapeHtml(bigTip) || 'Activity image'}
+                src={sanitizeExternalURL(largeUrl)}
                 className="large-image"
               />
             ) : (
@@ -128,9 +128,9 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
             )}
             {smallUrl && (
               <div className="smallImageContainer_ef9ae7 activity-small-thumbnail" data-tip={escapeHtml(smallTip)}>
-                <img 
-                  className="contentImage__42bf5 contentImage_ef9ae7" 
-                  alt={escapeHtml(smallTip)} 
+                <img
+                  className="contentImage__42bf5 contentImage_ef9ae7"
+                  alt={escapeHtml(smallTip)}
                   src={sanitizeExternalURL(smallUrl)}
                 />
                 <span style={{ display: 'none' }}></span>
@@ -146,7 +146,7 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
               <div className="activity-artist">{escapeHtml(activity.state)}</div>
             )}
             {(hasElapsed || showStreak) && (
-              <div className="elapsed-row flex-wrap justify-center md:justify-start">
+              <div className="elapsed-row flex-wrap justify-start">
                 {hasElapsed && (
                   <div className="elapsed-pill">
                     <svg className="clock" viewBox="0 0 24 24" aria-hidden="true">
@@ -160,7 +160,7 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
                 {showStreak && (
                   <div className="elapsed-pill" id={`streak-pill-${aid}`}>
                     <svg className="flame" viewBox="0 0 24 24" aria-hidden="true">
-                      <path fill="currentColor" d="m8.294 14-1.767 7.068c-.187.746.736 1.256 1.269.701L19.79 9.27A.75.75 0 0 0 19.25 8h-4.46l1.672-5.013A.75.75 0 0 0 15.75 2h-7a.75.75 0 0 0-.721.544l-3 10.5A.75.75 0 0 0 5.75 14h2.544Z"/>
+                      <path fill="currentColor" d="m8.294 14-1.767 7.068c-.187.746.736 1.256 1.269.701L19.79 9.27A.75.75 0 0 0 19.25 8h-4.46l1.672-5.013A.75.75 0 0 0 15.75 2h-7a.75.75 0 0 0-.721.544l-3 10.5A.75.75 0 0 0 5.75 14h2.544Z" />
                     </svg>
                     <span>{streak}x&nbsp;Streak</span>
                   </div>

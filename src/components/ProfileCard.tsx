@@ -39,17 +39,17 @@ function toRgb(color: string): string {
 // Parse Discord markdown syntax in bio
 function parseDiscordMarkdown(text: string): React.ReactNode {
   if (!text) return text;
-  
+
   // Split by line breaks first to handle multiline elements
   const lines = text.split('\n');
   const parsedLines: React.ReactNode[] = [];
-  
+
   lines.forEach((line, lineIndex) => {
     if (line.trim() === '') {
       parsedLines.push(<br key={`br-${lineIndex}`} />);
       return;
     }
-    
+
     // Parse block quotes (must be at start of line)
     if (line.startsWith('>>>')) {
       // Multiline block quote
@@ -70,7 +70,7 @@ function parseDiscordMarkdown(text: string): React.ReactNode {
       );
       return;
     }
-    
+
     // Parse code blocks (```language code```)
     const codeBlockMatch = line.match(/^```(\w+)?\n?([\s\S]*?)```$/);
     if (codeBlockMatch) {
@@ -83,7 +83,7 @@ function parseDiscordMarkdown(text: string): React.ReactNode {
       );
       return;
     }
-    
+
     // Parse list items
     const listMatch = line.match(/^(\s*)([-*]|\d+\.)\s+(.+)$/);
     if (listMatch) {
@@ -91,7 +91,7 @@ function parseDiscordMarkdown(text: string): React.ReactNode {
       const marker = listMatch[2];
       const content = listMatch[3];
       const isOrdered = /^\d+\.$/.test(marker);
-      
+
       parsedLines.push(
         <div key={`list-${lineIndex}`} className={`discord-list-item ${isOrdered ? 'discord-list-ordered' : 'discord-list-unordered'}`} style={{ paddingLeft: `${indent * 20}px` }}>
           {isOrdered ? <span className="discord-list-marker">{marker}</span> : <span className="discord-list-marker">•</span>}
@@ -100,7 +100,7 @@ function parseDiscordMarkdown(text: string): React.ReactNode {
       );
       return;
     }
-    
+
     // Parse regular line with inline markdown
     parsedLines.push(
       <div key={`line-${lineIndex}`} className="discord-bio-line">
@@ -108,31 +108,32 @@ function parseDiscordMarkdown(text: string): React.ReactNode {
       </div>
     );
   });
-  
+
   return <>{parsedLines}</>;
 }
 
 // Parse inline Discord markdown (bold, italic, underline, strikethrough, code, links, spoilers, timestamps)
+// Parse inline Discord markdown (bold, italic, underline, strikethrough, code, links, spoilers, timestamps, mentions, emojis)
 function parseInlineMarkdown(text: string): React.ReactNode {
   if (!text) return text;
-  
+
   const parts: (string | React.ReactNode)[] = [];
   let remaining = text;
   let keyCounter = 0;
-  
+
   // Parse in order of priority (most specific first)
   while (remaining.length > 0) {
     let matched = false;
-    
-    // 1. Discord timestamps: <t:timestamp:t>
-    const timestampMatch = remaining.match(/^<t:(\d+):([tTdDfFR])>/);
+
+    // 1. Discord timestamps: <t:timestamp:style> or <t:timestamp>
+    const timestampMatch = remaining.match(/^<t:(\d+)(?::([tTdDfFsSR]))?>/);
     if (timestampMatch) {
       const timestamp = parseInt(timestampMatch[1]);
-      const format = timestampMatch[2];
+      const format = timestampMatch[2] || 'f'; // Default to 'f' (short date/time) if style not provided
       const date = new Date(timestamp * 1000);
       let formatted: string;
-      
-      switch (format.toLowerCase()) {
+
+      switch (format) {
         case 't': // Short time (e.g., 9:41 PM)
           formatted = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
           break;
@@ -158,20 +159,24 @@ function parseInlineMarkdown(text: string): React.ReactNode {
           const minutes = Math.floor(seconds / 60);
           const hours = Math.floor(minutes / 60);
           const days = Math.floor(hours / 24);
-          const months = Math.floor(days / 30);
           const years = Math.floor(days / 365);
-          
+
           if (years > 0) formatted = `${years} year${years > 1 ? 's' : ''} ago`;
-          else if (months > 0) formatted = `${months} month${months > 1 ? 's' : ''} ago`;
           else if (days > 0) formatted = `${days} day${days > 1 ? 's' : ''} ago`;
           else if (hours > 0) formatted = `${hours} hour${hours > 1 ? 's' : ''} ago`;
           else if (minutes > 0) formatted = `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
           else formatted = 'just now';
           break;
+        case 's': // Short Date, Short Time
+          formatted = date.toLocaleString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+          break;
+        case 'S': // Short Date, Medium Time
+          formatted = date.toLocaleString('en-US', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' });
+          break;
         default:
           formatted = date.toLocaleString();
       }
-      
+
       parts.push(
         <span key={`timestamp-${keyCounter++}`} className="discord-timestamp" title={date.toLocaleString()}>
           {formatted}
@@ -180,8 +185,137 @@ function parseInlineMarkdown(text: string): React.ReactNode {
       remaining = remaining.substring(timestampMatch[0].length);
       matched = true;
     }
-    
-    // 2. Inline code: `code`
+
+    // 2. Custom Emojis: <:name:id> or <a:name:id>
+    if (!matched) {
+      const emojiMatch = remaining.match(/^<(a)?:(\w+):(\d+)>/);
+      if (emojiMatch) {
+        const isAnimated = !!emojiMatch[1];
+        const name = emojiMatch[2];
+        const id = emojiMatch[3];
+        const extension = isAnimated ? 'gif' : 'png';
+        const url = `https://cdn.discordapp.com/emojis/${id}.${extension}`;
+
+        parts.push(
+          <img
+            key={`emoji-${keyCounter++}`}
+            src={url}
+            alt={`:${name}:`}
+            title={`:${name}:`}
+            className="discord-custom-emoji-img inline-block w-5 h-5 align-text-bottom object-contain"
+          />
+        );
+        remaining = remaining.substring(emojiMatch[0].length);
+        matched = true;
+      }
+    }
+
+    // 3. User Mentions: <@ID> or <@!ID>
+    if (!matched) {
+      const userMatch = remaining.match(/^<@!?(\d+)>/);
+      if (userMatch) {
+        const id = userMatch[1];
+        parts.push(
+          <span key={`user-mention-${keyCounter++}`} className="discord-mention text-[#dee0e1] bg-[#5865f24d] hover:bg-[#5865f2] rounded px-1 transition-colors cursor-pointer">
+            @{id}
+          </span>
+        );
+        remaining = remaining.substring(userMatch[0].length);
+        matched = true;
+      }
+    }
+
+    // 4. Channel Mentions: <#ID>
+    if (!matched) {
+      const channelMatch = remaining.match(/^<#(\d+)>/);
+      if (channelMatch) {
+        const id = channelMatch[1];
+        parts.push(
+          <span key={`channel-mention-${keyCounter++}`} className="discord-mention text-[#dee0e1] bg-[#5865f24d] hover:bg-[#5865f2] rounded px-1 transition-colors cursor-pointer">
+            #{id}
+          </span>
+        );
+        remaining = remaining.substring(channelMatch[0].length);
+        matched = true;
+      }
+    }
+
+    // 5. Role Mentions: <@&ID>
+    if (!matched) {
+      const roleMatch = remaining.match(/^<@&(\d+)>/);
+      if (roleMatch) {
+        const id = roleMatch[1];
+        parts.push(
+          <span key={`role-mention-${keyCounter++}`} className="discord-mention text-[#dee0e1] bg-[#5865f24d] hover:bg-[#5865f2] rounded px-1 transition-colors cursor-pointer">
+            @Role
+          </span>
+        );
+        remaining = remaining.substring(roleMatch[0].length);
+        matched = true;
+      }
+    }
+
+    // 6. Slash Commands: </name:id> or </name subcommand:id>
+    if (!matched) {
+      const slashMatch = remaining.match(/^<\/([\w\s\-_]+):(\d+)>/);
+      if (slashMatch) {
+        const name = slashMatch[1];
+        parts.push(
+          <span key={`slash-mention-${keyCounter++}`} className="discord-mention text-[#dee0e1] bg-[#5865f24d] hover:bg-[#5865f2] rounded px-1 transition-colors cursor-pointer opacity-80">
+            /{name}
+          </span>
+        );
+        remaining = remaining.substring(slashMatch[0].length);
+        matched = true;
+      }
+    }
+
+    // 7. Guild Navigation: <id:type>
+    if (!matched) {
+      const navMatch = remaining.match(/^<id:(\w+)>/);
+      if (navMatch) {
+        const type = navMatch[1];
+        parts.push(
+          <span key={`nav-mention-${keyCounter++}`} className="discord-mention text-[#dee0e1] bg-[#5865f24d] hover:bg-[#5865f2] rounded px-1 transition-colors cursor-pointer">
+            {type}
+          </span>
+        );
+        remaining = remaining.substring(navMatch[0].length);
+        matched = true;
+      }
+    }
+
+    // 8. Email: <email>
+    if (!matched) {
+      const emailMatch = remaining.match(/^<([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>/);
+      if (emailMatch) {
+        const email = emailMatch[1];
+        parts.push(
+          <a key={`email-${keyCounter++}`} href={`mailto:${email}`} className="text-[#00b0f4] hover:underline">
+            {email}
+          </a>
+        );
+        remaining = remaining.substring(emailMatch[0].length);
+        matched = true;
+      }
+    }
+
+    // 9. Phone: <+phone>
+    if (!matched) {
+      const phoneMatch = remaining.match(/^<(\+[\d\s\(\)-]+)>/);
+      if (phoneMatch) {
+        const phone = phoneMatch[1];
+        parts.push(
+          <a key={`phone-${keyCounter++}`} href={`tel:${phone.replace(/[\s\(\)-]/g, '')}`} className="text-[#00b0f4] hover:underline">
+            {phone}
+          </a>
+        );
+        remaining = remaining.substring(phoneMatch[0].length);
+        matched = true;
+      }
+    }
+
+    // 10. Inline code: `code`
     if (!matched) {
       const codeMatch = remaining.match(/^`([^`]+)`/);
       if (codeMatch) {
@@ -194,8 +328,8 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
-    // 3. Spoilers: ||text||
+
+    // 11. Spoilers: ||text||
     if (!matched) {
       const spoilerMatch = remaining.match(/^\|\|([^|]+)\|\|/);
       if (spoilerMatch) {
@@ -208,8 +342,8 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
-    // 4. Links: [text](url)
+
+    // 12. Links: [text](url)
     if (!matched) {
       const linkMatch = remaining.match(/^\[([^\]]+)\]\(([^)]+)\)/);
       if (linkMatch) {
@@ -234,8 +368,8 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
-    // 5. Complex formatting combinations (underline + bold italic, etc.)
+
+    // 13. Complex formatting combinations (underline + bold italic, etc.)
     // __***text***__
     if (!matched) {
       const underlineBoldItalicMatch = remaining.match(/^__\*\*\*([^_*]+)\*\*\*__/);
@@ -249,7 +383,7 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
+
     // __**text**__
     if (!matched) {
       const underlineBoldMatch = remaining.match(/^__\*\*([^_*]+)\*\*__/);
@@ -263,7 +397,7 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
+
     // __*text*__
     if (!matched) {
       const underlineItalicMatch = remaining.match(/^__\*([^_*]+)\*__/);
@@ -277,8 +411,8 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
-    // 6. Underline: __text__
+
+    // 14. Underline: __text__
     if (!matched) {
       const underlineMatch = remaining.match(/^__([^_]+)__/);
       if (underlineMatch) {
@@ -291,8 +425,8 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
-    // 7. Bold italic: ***text***
+
+    // 15. Bold italic: ***text***
     if (!matched) {
       const boldItalicMatch = remaining.match(/^\*\*\*([^*]+)\*\*\*/);
       if (boldItalicMatch) {
@@ -305,8 +439,8 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
-    // 8. Bold: **text**
+
+    // 16. Bold: **text**
     if (!matched) {
       const boldMatch = remaining.match(/^\*\*([^*]+)\*\*/);
       if (boldMatch) {
@@ -319,8 +453,8 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
-    // 9. Italic: *text* or _text_
+
+    // 17. Italic: *text* or _text_
     if (!matched) {
       const italicMatch = remaining.match(/^([*_])([^*_\s][^*_]*?)\1(?!\1)/);
       if (italicMatch) {
@@ -333,8 +467,8 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
-    // 10. Strikethrough: ~~text~~
+
+    // 18. Strikethrough: ~~text~~
     if (!matched) {
       const strikeMatch = remaining.match(/^~~([^~]+)~~/);
       if (strikeMatch) {
@@ -347,8 +481,8 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
-    // 11. URLs (plain URLs not in markdown links)
+
+    // 19. URLs (plain URLs not in markdown links)
     if (!matched) {
       const urlMatch = remaining.match(/^(https?:\/\/[^\s]+)/);
       if (urlMatch) {
@@ -369,29 +503,25 @@ function parseInlineMarkdown(text: string): React.ReactNode {
         matched = true;
       }
     }
-    
-    // 12. Discord custom emojis: :emoji_name:
+
+    // 20. Discord standard emojis: :emoji_name: (fallback if not custom)
     if (!matched) {
       const emojiMatch = remaining.match(/^:([a-zA-Z0-9_]+):/);
       if (emojiMatch) {
-        // Discord emoji would need to be fetched from CDN, for now just show the name
-        parts.push(
-          <span key={`emoji-${keyCounter++}`} className="discord-custom-emoji" title={emojiMatch[1]}>
-            :{emojiMatch[1]}:
-          </span>
-        );
+        // Just text for standard emojis for now, as resolving standard emojis requires a huge map
+        parts.push(`:${emojiMatch[1]}:`);
         remaining = remaining.substring(emojiMatch[0].length);
         matched = true;
       }
     }
-    
+
     // If nothing matched, add the first character and continue
     if (!matched) {
       parts.push(remaining[0]);
       remaining = remaining.substring(1);
     }
   }
-  
+
   return <>{parts}</>;
 }
 
@@ -413,7 +543,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
   // Use state instead of refs so component re-renders when server data loads
   const [lastKnownActivities, setLastKnownActivities] = useState<LanyardActivity[] | null>(null);
   const [lastKnownSpotify, setLastKnownSpotify] = useState<LanyardSpotify | null>(null);
-  
+
   // Get user ID for API calls
   const userId = user?.id || dstnUser?.id || null;
 
@@ -431,7 +561,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
     return null;
   }, [dstnUser]);
   const lastSeen = useMemo(() => formatLastSeenTime(lantern), [lantern]);
-  
+
   // Get display name color (from params or accent color from theme)
   const displayNameColorValue = useMemo(() => {
     // Use custom color from params if provided
@@ -457,7 +587,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
   // Generate color variants for effects (like Discord does)
   const displayNameColorVariants = useMemo(() => {
     const mainColor = displayNameColorValue;
-    
+
     // If it's a gradient, extract the first color for variants
     let colorToUse = mainColor;
     if (mainColor.startsWith('linear-gradient')) {
@@ -470,7 +600,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
         colorToUse = '#FF6B9D';
       }
     }
-    
+
     // Convert hex to RGB if needed
     let r = 255, g = 255, b = 255;
     if (colorToUse.startsWith('#')) {
@@ -486,7 +616,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
         b = parseInt(match[2]);
       }
     }
-    
+
     // Generate lighter and darker variants
     const lighten = (amount: number) => {
       return `rgb(${Math.min(255, r + amount)}, ${Math.min(255, g + amount)}, ${Math.min(255, b + amount)})`;
@@ -494,7 +624,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
     const darken = (amount: number) => {
       return `rgb(${Math.max(0, r - amount)}, ${Math.max(0, g - amount)}, ${Math.max(0, b - amount)})`;
     };
-    
+
     return {
       main: colorToUse,
       light1: lighten(40),
@@ -583,14 +713,14 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
   // Load last known activities and Spotify from server on mount
   useEffect(() => {
     if (typeof window === 'undefined' || !userId) return;
-    
+
     // Fetch stored activities from server
     fetch(`/api/activities?userId=${userId}`)
       .then(res => res.json())
       .then(data => {
         if (data.activities && Array.isArray(data.activities) && data.activities.length > 0) {
           setLastKnownActivities(data.activities);
-          
+
           // Update streaks for loaded activities
           data.activities.forEach((activity: any) => {
             // Only track streaks for game activities (Playing or Competing)
@@ -630,20 +760,20 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
   // This ensures we always capture the most recent activities, even when user goes offline
   useEffect(() => {
     if (!userId) return;
-    
+
     const activitiesToStore = lanyard?.activities || [];
     const spotifyToStore = lanyard?.spotify || null;
-      
+
     // Only save if we have activities or spotify data
     if (activitiesToStore.length > 0 || spotifyToStore) {
       // Update state immediately
       if (activitiesToStore.length > 0) {
         setLastKnownActivities(activitiesToStore);
-        }
+      }
       if (spotifyToStore) {
         setLastKnownSpotify(spotifyToStore);
       }
-      
+
       // POST /api/activities removed due to security vulnerability (Unauthenticated Cache Poisoning)
       // We rely on the backend to fetch fresh data from Lanyard directly via the GET endpoint.
 
@@ -676,7 +806,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
   // Use last known activities when offline, current activities when online
   const activities = useMemo(() => {
     let activitiesToUse: LanyardActivity[] = [];
-    
+
     if (status === 'offline') {
       // When offline, use state (which may have been loaded from server)
       activitiesToUse = lastKnownActivities || lanyard?.activities || [];
@@ -684,7 +814,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
       // When online, use current activities
       activitiesToUse = lanyard?.activities || [];
     }
-    
+
     if (!activitiesToUse || activitiesToUse.length === 0) return [];
     let filtered = activitiesToUse.filter(a => a.type !== 4 && a.type !== 2);
     // Filter out activities by app ID if hideAppById is set
@@ -701,7 +831,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
   // Use last known activities when offline, current activities when online
   const listeningActivities = useMemo(() => {
     let activitiesToUse: LanyardActivity[] = [];
-    
+
     if (status === 'offline') {
       // When offline, use state (which may have been loaded from server)
       activitiesToUse = lastKnownActivities || lanyard?.activities || [];
@@ -709,7 +839,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
       // When online, use current activities
       activitiesToUse = lanyard?.activities || [];
     }
-    
+
     if (!activitiesToUse || activitiesToUse.length === 0) return [];
     let filtered = activitiesToUse.filter(a => a.type === 2);
     // Filter out activities by app ID if hideAppById is set
@@ -736,26 +866,26 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
   // Compute card background style
   const cardBackgroundStyle = useMemo(() => {
     if (params?.transparent) {
-      return { 
-        background: 'transparent', 
-        backdropFilter: 'none', 
-        WebkitBackdropFilter: 'none' 
+      return {
+        background: 'transparent',
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none'
       };
     }
 
     const colorScheme = params?.colorScheme || 'default';
-    
+
     if (colorScheme === 'default' && dstn?.user_profile?.theme_colors && Array.isArray(dstn.user_profile.theme_colors) && dstn.user_profile.theme_colors.length >= 2) {
       const color1Hex = dstn.user_profile.theme_colors[0];
       const color2Hex = dstn.user_profile.theme_colors[1];
-      
+
       const r1 = (color1Hex >> 16) & 255;
       const g1 = (color1Hex >> 8) & 255;
       const b1 = color1Hex & 255;
       const r2 = (color2Hex >> 16) & 255;
       const g2 = (color2Hex >> 8) & 255;
       const b2 = color2Hex & 255;
-      
+
       return { background: `linear-gradient(180deg, rgb(${r1},${g1},${b1}) 0%, rgb(${r2},${g2},${b2}) 100%)` };
     } else if (colorScheme === 'dark') {
       return { background: 'linear-gradient(180deg, #2f3136 0%, #23272a 100%)' };
@@ -767,7 +897,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
         return { background: `linear-gradient(135deg, #${params.primaryColor} 0%, #${params.accentColor} 100%)` };
       }
     }
-    
+
     return {};
   }, [params?.colorScheme, params?.primaryColor, params?.accentColor, params?.transparent, dstn]);
 
@@ -788,12 +918,12 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
     // Force reflow to trigger CSS transitions
     const activitiesSection = document.querySelector('.discord-activities-section');
     const musicSection = document.querySelector('.discord-music-section');
-    
+
     if (activitiesSection && activitiesSection.classList.contains('has-content') && activitiesSection instanceof HTMLElement) {
       // Trigger reflow
       void activitiesSection.offsetHeight;
     }
-    
+
     if (musicSection && musicSection.classList.contains('has-content') && musicSection instanceof HTMLElement) {
       // Trigger reflow
       void musicSection.offsetHeight;
@@ -818,41 +948,41 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
       // Convert theme colors to HSL
       const primaryHex = dstn.user_profile.theme_colors[0];
       const secondaryHex = dstn.user_profile.theme_colors[1];
-      
+
       const hexToHsl = (hex: number): string => {
         const r = (hex >> 16) & 255;
         const g = (hex >> 8) & 255;
         const b = hex & 255;
-        
+
         const rNorm = r / 255;
         const gNorm = g / 255;
         const bNorm = b / 255;
-        
+
         const max = Math.max(rNorm, gNorm, bNorm);
         const min = Math.min(rNorm, gNorm, bNorm);
         let h = 0, s = 0, l = (max + min) / 2;
-        
+
         if (max !== min) {
           const d = max - min;
           s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-          
+
           switch (max) {
             case rNorm: h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6; break;
             case gNorm: h = ((bNorm - rNorm) / d + 2) / 6; break;
             case bNorm: h = ((rNorm - gNorm) / d + 4) / 6; break;
           }
         }
-        
+
         h = Math.round(h * 360);
         s = Math.round(s * 100);
         l = Math.round(l * 100);
-        
+
         return `hsla(${h}, ${s}%, ${l}%, 1)`;
       };
-      
+
       primaryHsl = hexToHsl(primaryHex);
       secondaryHsl = hexToHsl(secondaryHex);
-      
+
       // Generate darker variants for button and modal
       const r2 = (secondaryHex >> 16) & 255;
       const g2 = (secondaryHex >> 8) & 255;
@@ -865,7 +995,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
       const l2 = (max2 + min2) / 2;
       const s2 = max2 !== min2 ? (l2 > 0.5 ? (max2 - min2) / (2 - max2 - min2) : (max2 - min2) / (max2 + min2)) : 0;
       const h2 = max2 === min2 ? 0 : max2 === rNorm2 ? ((gNorm2 - bNorm2) / (max2 - min2) + (gNorm2 < bNorm2 ? 6 : 0)) / 6 : max2 === gNorm2 ? ((bNorm2 - rNorm2) / (max2 - min2) + 2) / 6 : ((rNorm2 - gNorm2) / (max2 - min2) + 4) / 6;
-      
+
       buttonColor = `hsla(${Math.round(h2 * 360)}, ${Math.round(s2 * 100)}%, ${Math.round(l2 * 20)}%, 1)`;
       modalBgColor = `hsla(${Math.round(h2 * 360)}, ${Math.round(s2 * 100)}%, ${Math.round(l2 * 5)}%, 1)`;
     } else if (params?.colorScheme === 'custom' && params?.primaryColor && params?.accentColor) {
@@ -875,29 +1005,29 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
         const r = parseInt(hexClean.slice(0, 2), 16) / 255;
         const g = parseInt(hexClean.slice(2, 4), 16) / 255;
         const b = parseInt(hexClean.slice(4, 6), 16) / 255;
-        
+
         const max = Math.max(r, g, b);
         const min = Math.min(r, g, b);
         let h = 0, s = 0, l = (max + min) / 2;
-        
+
         if (max !== min) {
           const d = max - min;
           s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-          
+
           switch (max) {
             case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
             case g: h = ((b - r) / d + 2) / 6; break;
             case b: h = ((r - g) / d + 4) / 6; break;
           }
         }
-        
+
         return `hsla(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%, 1)`;
       };
-      
+
       primaryHsl = hexToHsl(params.primaryColor);
       secondaryHsl = hexToHsl(params.accentColor);
     }
-    
+
     return {
       primaryHsl,
       secondaryHsl,
@@ -920,7 +1050,7 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
       } as unknown as React.CSSProperties}
     >
       <div className="inner_c0bea0">
-        <div className="discord-profile-card" style={{ margin: '0 auto', ...cardBackgroundStyle }}>
+        <div className="discord-profile-card flex flex-col" style={{ margin: '0 auto', ...cardBackgroundStyle, paddingBottom: '16px' }}>
           <ProfileHeader
             user={user}
             displayName={displayName}

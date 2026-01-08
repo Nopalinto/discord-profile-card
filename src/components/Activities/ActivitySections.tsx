@@ -35,13 +35,13 @@ function ActivitySectionsComponent({
   // Process history data if available
   const historyActivities = history?.filter(h => h.type === 'activity') || [];
   const historySongs = history?.filter(h => h.type === 'spotify' || h.type === 'apple' || h.type === 'tidal') || [];
-  
+
   return (
     <>
       {/* Show activities when online/idle/dnd */}
       {!isOffline && (
         <section
-          className={`discord-activities-section ${activities.length > 0 && !hideActivity ? 'has-content' : ''}`}
+          className={`discord-activities-section flex-shrink-0 ${activities.length > 0 && !hideActivity ? 'has-content' : ''}`}
         >
           <div id="activities-list" className="activities-list">
             {activities.length > 0 && !hideActivity && activities.map((activity, index) => (
@@ -59,7 +59,7 @@ function ActivitySectionsComponent({
       {/* Show music when online/idle/dnd */}
       {!isOffline && (
         <section
-          className={`discord-music-section ${(spotify || listeningActivities.length > 0) && !hideSpotify ? 'has-content' : ''}`}
+          className={`discord-music-section flex-shrink-0 ${(spotify || listeningActivities.length > 0) && !hideSpotify ? 'has-content' : ''}`}
         >
           <div id="music-list" className="music-list">
             {!hideSpotify && spotify && (
@@ -105,12 +105,12 @@ function ActivitySectionsComponent({
                     details: item.details,
                     state: item.state,
                     assets: {
-                        large_image: item.image ? 'external' : undefined,
-                        large_text: item.name,
-                        small_image: item.metadata?.small_image ? 'external' : undefined,
-                        small_text: item.metadata?.small_text,
-                        external_url: item.image,
-                        small_external_url: item.metadata?.small_image
+                      large_image: item.image ? 'external' : undefined,
+                      large_text: item.name,
+                      small_image: item.metadata?.small_image ? 'external' : undefined,
+                      small_text: item.metadata?.small_text,
+                      external_url: item.image,
+                      small_external_url: item.metadata?.small_image
                     } as any,
                     timestamps: { start: item.timestamp - (item.metadata?.duration || 0) }
                   } as any}
@@ -134,7 +134,7 @@ function ActivitySectionsComponent({
               <MusicCard spotify={spotify} hideTimestamp={true} />
             ) : (
               historySongs.slice(0, 1).map((item, index) => (
-                <MusicCard 
+                <MusicCard
                   key={`hist-song-${index}`}
                   type={item.type}
                   spotify={{
@@ -143,8 +143,8 @@ function ActivitySectionsComponent({
                     album_art_url: item.image,
                     album: item.metadata?.album,
                     track_id: item.metadata?.track_id
-                  } as any} 
-                  hideTimestamp={true} 
+                  } as any}
+                  hideTimestamp={true}
                 />
               ))
             )}
