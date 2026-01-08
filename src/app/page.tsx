@@ -27,10 +27,10 @@ const DEFAULT_USER_ID = '915480322328649758';
 function HomePageContent() {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
-  
+
   // Parse URL params once (from incoming URL)
   const parsedUrlParams = useMemo(() => parseUrlParams(searchParams), [searchParams]);
-  
+
   const [userId, setUserId] = useState(() => {
     return parsedUrlParams.id || DEFAULT_USER_ID;
   });
@@ -41,7 +41,7 @@ function HomePageContent() {
       setUserId(session.user.id);
     }
   }, [session, userId, searchParams]);
-  
+
   // Store RAWG API key on server (associated with userId)
   const [rawgApiKey, setRawgApiKey] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -49,7 +49,7 @@ function HomePageContent() {
     }
     return '';
   });
-  
+
   // Load RAWG API key from localStorage when userId changes
   useEffect(() => {
     if (typeof window !== 'undefined' && userId) {
@@ -94,7 +94,7 @@ function HomePageContent() {
 
     return () => clearTimeout(timeoutId);
   }, [rawgApiKey, userId]);
-  
+
   // Initialize display options from URL params
   const [displayOptions, setDisplayOptions] = useState(() => ({
     disableAnimatedAvatarDecoration: parsedUrlParams.disableAnimatedAvatarDecoration ?? false,
@@ -107,7 +107,7 @@ function HomePageContent() {
     hideRecentActivity: parsedUrlParams.hideRecentActivity ?? false,
     hideLastSeen: parsedUrlParams.hideLastSeen ?? false,
   }));
-  
+
   // Sync display options when URL params change (but only if they actually changed)
   useEffect(() => {
     setDisplayOptions(prev => {
@@ -132,7 +132,7 @@ function HomePageContent() {
       return prev;
     });
   }, [parsedUrlParams]);
-  
+
   const [colorScheme, setColorScheme] = useState<'default' | 'dark' | 'light' | 'custom'>(() => {
     return parsedUrlParams.colorScheme || 'default';
   });
@@ -148,8 +148,8 @@ function HomePageContent() {
   const [displayNameEffect, setDisplayNameEffect] = useState(() => parsedUrlParams.displayNameEffect || 'solid');
   const [displayNameColor, setDisplayNameColor] = useState(() => {
     if (parsedUrlParams.displayNameColor) {
-      return parsedUrlParams.displayNameColor.startsWith('#') 
-        ? parsedUrlParams.displayNameColor 
+      return parsedUrlParams.displayNameColor.startsWith('#')
+        ? parsedUrlParams.displayNameColor
         : `#${parsedUrlParams.displayNameColor}`;
     }
     return '#FF6B9D';
@@ -163,6 +163,7 @@ function HomePageContent() {
   const [iframeHeight, setIframeHeight] = useState(600);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasSetColorFromApi, setHasSetColorFromApi] = useState(false);
+  const [previewBg, setPreviewBg] = useState<'dark' | 'light' | 'transparent'>('dark');
 
   const { lanyard, dstn, lantern, loading, isVerified, updatedAt } = useDiscordProfile(
     isValidDiscordId(userId) ? userId : null,
@@ -172,9 +173,9 @@ function HomePageContent() {
   const isInLantern = useMemo(() => {
     if (!userId || !isValidDiscordId(userId)) return true;
     if (loading) return true; // Don't show red while loading
-    
+
     // If we have lantern data, they are being tracked (likely in the server)
-    return !!lantern; 
+    return !!lantern;
   }, [userId, lantern, loading]);
 
   // Mappings for Discord font and effect IDs (updated for Lantern)
@@ -206,18 +207,18 @@ function HomePageContent() {
   useEffect(() => {
     if (!loading && (lantern || dstn) && !hasSetColorFromApi) {
       // Check lantern first, then dstn for display name styles
-      const styles = lantern?.display_name_styles || 
-                     lantern?.user?.display_name_styles || 
-                     dstn?.user?.display_name_styles;
-      
+      const styles = lantern?.display_name_styles ||
+        lantern?.user?.display_name_styles ||
+        dstn?.user?.display_name_styles;
+
       console.log('DEBUG: Found Styles:', styles);
-      
+
       // If user has official Discord display name styles, apply them
       if (styles) {
         if (styles.font_id && FONT_ID_MAP[styles.font_id]) {
           setDisplayNameFont(FONT_ID_MAP[styles.font_id]);
         }
-        
+
         if (styles.effect_id && EFFECT_ID_MAP[styles.effect_id]) {
           setDisplayNameEffect(EFFECT_ID_MAP[styles.effect_id]);
         }
@@ -226,7 +227,7 @@ function HomePageContent() {
           const mainColor = decimalToHex(styles.colors[0]);
           setDisplayNameColor(mainColor);
           setDisplayNameGradientStart(mainColor);
-          
+
           if (styles.colors.length > 1) {
             setDisplayNameGradientEnd(decimalToHex(styles.colors[1]));
           } else {
@@ -240,11 +241,11 @@ function HomePageContent() {
             setDisplayNameGradientEnd(`#${lightR.toString(16).padStart(2, '0')}${lightG.toString(16).padStart(2, '0')}${lightB.toString(16).padStart(2, '0')}`.toUpperCase());
           }
         }
-        
+
         setHasSetColorFromApi(true);
         return;
       }
-      
+
       // Fallback to dstn theme colors if no display name styles found
       const themeColors = dstn?.user_profile?.theme_colors;
       if (themeColors && Array.isArray(themeColors) && themeColors.length >= 2) {
@@ -254,16 +255,16 @@ function HomePageContent() {
         const g = (accentColorHex >> 8) & 255;
         const b = accentColorHex & 255;
         const hexString = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`.toUpperCase();
-        
+
         setDisplayNameColor(hexString);
         setDisplayNameGradientStart(hexString);
-        
+
         const lightR = Math.min(255, r + 50);
         const lightG = Math.min(255, g + 50);
         const lightB = Math.min(255, b + 50);
         const lightHexString = `#${lightR.toString(16).padStart(2, '0')}${lightG.toString(16).padStart(2, '0')}${lightB.toString(16).padStart(2, '0')}`.toUpperCase();
         setDisplayNameGradientEnd(lightHexString);
-        
+
         setHasSetColorFromApi(true);
         return;
       }
@@ -322,8 +323,8 @@ function HomePageContent() {
     bannerUrl: bannerUrl || undefined,
     displayNameFont,
     displayNameEffect,
-    displayNameColor: displayNameEffect === 'gradient' 
-      ? undefined 
+    displayNameColor: displayNameEffect === 'gradient'
+      ? undefined
       : (displayNameColor.startsWith('linear-gradient') ? displayNameColor : displayNameColor.replace('#', '')),
     displayNameGradientStart: displayNameEffect === 'gradient' ? displayNameGradientStart.replace('#', '') : undefined,
     displayNameGradientEnd: displayNameEffect === 'gradient' ? displayNameGradientEnd.replace('#', '') : undefined,
@@ -477,25 +478,54 @@ function HomePageContent() {
       <main id="main-content" className="min-h-screen w-full bg-[#09090B] py-10 px-4">
         <div className="mx-auto max-w-[1280px]">
           <div id="preview-section" className="grid gap-6 md:grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
-            <section 
+            <section
               ref={previewRef.ref as React.RefObject<HTMLElement>}
-              className={`rounded-[32px] border border-white/5 bg-gradient-to-b from-[#050505] to-[#0d0d0f] p-4 md:p-6 shadow-[0_30px_45px_rgba(0,0,0,0.55)] transition-all duration-1000 ${
-                previewRef.isVisible 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
+              className={`rounded-[32px] border border-white/5 bg-gradient-to-b from-[#050505] to-[#0d0d0f] p-4 md:p-6 shadow-[0_30px_45px_rgba(0,0,0,0.55)] transition-all duration-1000 ${previewRef.isVisible
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-8'
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.35em] text-zinc-400">Live Preview</p>
                   <h1 className="text-2xl font-semibold text-white">Discord Profile</h1>
                 </div>
+
+                {/* Preview Background Toggle */}
+                <div className="flex items-center gap-1 p-1 rounded-lg bg-white/5 border border-white/5">
+                  <button
+                    onClick={() => setPreviewBg('dark')}
+                    className={`p-1.5 rounded-md transition-all ${previewBg === 'dark' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    title="Dark Background"
+                  >
+                    <div className="w-4 h-4 rounded-full bg-zinc-900 border border-zinc-600" />
+                  </button>
+                  <button
+                    onClick={() => setPreviewBg('light')}
+                    className={`p-1.5 rounded-md transition-all ${previewBg === 'light' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    title="Light Background"
+                  >
+                    <div className="w-4 h-4 rounded-full bg-zinc-200 border border-zinc-400" />
+                  </button>
+                  <button
+                    onClick={() => setPreviewBg('transparent')}
+                    className={`p-1.5 rounded-md transition-all ${previewBg === 'transparent' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                    title="Transparent Background"
+                  >
+                    <div className="w-4 h-4 rounded-full border border-zinc-500 bg-[linear-gradient(45deg,#000000_25%,transparent_25%,transparent_75%,#000000_75%,#000000),linear-gradient(45deg,#000000_25%,transparent_25%,transparent_75%,#000000_75%,#000000)] bg-[length:6px_6px] bg-[position:0_0,3px_3px] opacity-50" />
+                  </button>
+                </div>
               </div>
               <div className="mt-4 md:mt-6 rounded-3xl border border-white/5 bg-[#0d0e13]/70 p-3 md:p-6">
-                <div className="min-h-[400px] md:min-h-[520px] w-full rounded-2xl border border-white/5 bg-zinc-900/50 p-3 md:p-6">
+                <div className={`min-h-[400px] md:min-h-[520px] w-full rounded-2xl border transition-colors duration-300 p-3 md:p-6 ${previewBg === 'transparent'
+                  ? 'bg-transparent border-white/10'
+                  : previewBg === 'light'
+                    ? 'bg-[#f2f3f5] border-white/10'
+                    : 'bg-zinc-900/50 border-white/5'
+                  }`}>
                   {!isValidDiscordId(userId) ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center text-sm text-zinc-400">
-                      <div className="mb-3 text-zinc-500">
+                    <div className={`flex flex-col items-center justify-center h-full text-center text-sm ${previewBg === 'light' ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                      <div className={`mb-3 ${previewBg === 'light' ? 'text-zinc-400' : 'text-zinc-500'}`}>
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                           <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                           <path d="M2 17l10 5 10-5"></path>
@@ -508,25 +538,25 @@ function HomePageContent() {
                     <LoadingSkeleton />
                   ) : (
                     <div className="h-full w-full">
-                    <iframe
-                      onLoad={requestHeight}
-                      ref={iframeRef}
-                      key={previewUrl}
-                      src={previewUrl}
-                      frameBorder="0"
-                      scrolling="no"
-                      className="w-full border-0"
-                      style={{
-                        minHeight: '520px',
-                        height: `${effectiveIframeHeight}px`,
-                        background: 'transparent',
-                      }}
-                    />
+                      <iframe
+                        onLoad={requestHeight}
+                        ref={iframeRef}
+                        key={previewUrl}
+                        src={previewUrl}
+                        frameBorder="0"
+                        scrolling="no"
+                        className="w-full border-0"
+                        style={{
+                          minHeight: '520px',
+                          height: `${effectiveIframeHeight}px`,
+                          background: 'transparent',
+                        }}
+                      />
                     </div>
                   )}
                 </div>
               </div>
-              
+
               {/* Credits Section - Compact */}
               <div className="mt-3 rounded-xl border border-white/5 bg-gradient-to-br from-[#0d0e13]/60 to-[#0a0a0f]/80 p-3 backdrop-blur-sm">
                 <div className="flex items-center gap-1.5 mb-2">
@@ -536,15 +566,15 @@ function HomePageContent() {
                   <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">Credits & Inspiration</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
-                  <a 
-                    href="https://lanyard.cnrad.dev/" 
-                    target="_blank" 
+                  <a
+                    href="https://lanyard.cnrad.dev/"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-2 p-2 rounded-lg border border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/10 transition-all duration-200"
                   >
                     <div className="flex-shrink-0 w-5 h-5 rounded-md bg-gradient-to-br from-[#5865F2]/20 to-[#5865F2]/10 border border-[#5865F2]/20 flex items-center justify-center">
                       <svg className="w-3 h-3 text-[#5865F2]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -557,16 +587,16 @@ function HomePageContent() {
                       <p className="text-[9px] text-zinc-500 leading-tight line-clamp-1">Banner preview</p>
                     </div>
                   </a>
-                  
-                  <a 
-                    href="https://github.com/Phineas/lanyard" 
-                    target="_blank" 
+
+                  <a
+                    href="https://github.com/Phineas/lanyard"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-2 p-2 rounded-lg border border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/10 transition-all duration-200"
                   >
                     <div className="flex-shrink-0 w-5 h-5 rounded-md bg-gradient-to-br from-[#5865F2]/20 to-[#5865F2]/10 border border-[#5865F2]/20 flex items-center justify-center">
                       <svg className="w-3 h-3 text-[#5865F2]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -579,16 +609,16 @@ function HomePageContent() {
                       <p className="text-[9px] text-zinc-500 leading-tight line-clamp-1">Presence API</p>
                     </div>
                   </a>
-                  
-                  <a 
-                    href="https://gist.github.com/dustinrouillard/04be36180ed80db144a4857408478854" 
-                    target="_blank" 
+
+                  <a
+                    href="https://gist.github.com/dustinrouillard/04be36180ed80db144a4857408478854"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-2 p-2 rounded-lg border border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/10 transition-all duration-200"
                   >
                     <div className="flex-shrink-0 w-5 h-5 rounded-md bg-gradient-to-br from-[#9c84ef]/20 to-[#9c84ef]/10 border border-[#9c84ef]/20 flex items-center justify-center">
                       <svg className="w-3 h-3 text-[#9c84ef]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -601,16 +631,16 @@ function HomePageContent() {
                       <p className="text-[9px] text-zinc-500 leading-tight line-clamp-1">Formatting examples</p>
                     </div>
                   </a>
-                  
-                  <a 
-                    href="https://dsc-readme.tsuni.dev/" 
-                    target="_blank" 
+
+                  <a
+                    href="https://dsc-readme.tsuni.dev/"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-2 p-2 rounded-lg border border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/10 transition-all duration-200"
                   >
                     <div className="flex-shrink-0 w-5 h-5 rounded-md bg-gradient-to-br from-[#ff6b9d]/20 to-[#ff6b9d]/10 border border-[#ff6b9d]/20 flex items-center justify-center">
                       <svg className="w-3 h-3 text-[#ff6b9d]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -623,16 +653,16 @@ function HomePageContent() {
                       <p className="text-[9px] text-zinc-500 leading-tight line-clamp-1">Layout cues</p>
                     </div>
                   </a>
-                  
-                  <a 
-                    href="https://github.com/discordplace/lantern" 
-                    target="_blank" 
+
+                  <a
+                    href="https://github.com/discordplace/lantern"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-2 p-2 rounded-lg border border-white/5 bg-white/2 hover:bg-white/5 hover:border-white/10 transition-all duration-200"
                   >
                     <div className="flex-shrink-0 w-5 h-5 rounded-md bg-gradient-to-br from-[#00d9ff]/20 to-[#00d9ff]/10 border border-[#00d9ff]/20 flex items-center justify-center">
                       <svg className="w-3 h-3 text-[#00d9ff]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -647,26 +677,26 @@ function HomePageContent() {
                   </a>
                 </div>
               </div>
-              
+
               {/* Discord Server Section */}
               <div className="mt-3 rounded-xl border border-white/5 bg-gradient-to-br from-[#5865F2]/10 to-[#5865F2]/5 p-3 backdrop-blur-sm">
                 <div className="flex items-center gap-1.5 mb-2">
                   <svg className="w-3.5 h-3.5 text-[#5865F2]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.016a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.65a.061.061 0 0 0-.031-.03zM8.02 15.33a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06zm7.975 0a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06z"/>
+                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.016a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.65a.061.061 0 0 0-.031-.03zM8.02 15.33a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06zm7.975 0a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06z" />
                   </svg>
                   <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#5865F2]">Join Discord Servers</h3>
                 </div>
                 <p className="text-[9px] text-zinc-400 mb-2 leading-tight">Join these Discord servers to ensure APIs can fetch your profile data:</p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  <a 
-                    href="https://discord.gg/N4hGYDvWBy" 
-                    target="_blank" 
+                  <a
+                    href="https://discord.gg/N4hGYDvWBy"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-2 p-2 rounded-lg border border-[#5865F2]/20 bg-[#5865F2]/10 hover:bg-[#5865F2]/20 hover:border-[#5865F2]/30 transition-all duration-200"
                   >
                     <div className="flex-shrink-0 w-5 h-5 rounded-md bg-[#5865F2]/20 border border-[#5865F2]/30 flex items-center justify-center">
                       <svg className="w-3 h-3 text-[#5865F2]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.016a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.65a.061.061 0 0 0-.031-.03zM8.02 15.33a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06zm7.975 0a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06z"/>
+                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.016a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.65a.061.061 0 0 0-.031-.03zM8.02 15.33a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06zm7.975 0a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06z" />
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -679,16 +709,16 @@ function HomePageContent() {
                       <p className="text-[9px] text-zinc-500 leading-tight line-clamp-1">Presence API server</p>
                     </div>
                   </a>
-                  
-                  <a 
-                    href="https://discord.com/invite/ZayKFnDtRT" 
-                    target="_blank" 
+
+                  <a
+                    href="https://discord.com/invite/ZayKFnDtRT"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-2 p-2 rounded-lg border border-[#00d9ff]/20 bg-[#00d9ff]/10 hover:bg-[#00d9ff]/20 hover:border-[#00d9ff]/30 transition-all duration-200"
                   >
                     <div className="flex-shrink-0 w-5 h-5 rounded-md bg-[#00d9ff]/20 border border-[#00d9ff]/30 flex items-center justify-center">
                       <svg className="w-3 h-3 text-[#00d9ff]" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.016a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.65a.061.061 0 0 0-.031-.03zM8.02 15.33a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06zm7.975 0a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06z"/>
+                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.016a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.65a.061.061 0 0 0-.031-.03zM8.02 15.33a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06zm7.975 0a1.125 1.125 0 0 1-1.06-1.048 1.106 1.106 0 0 1 1.048-1.06 1.124 1.124 0 0 1 1.06 1.047 1.1 1.1 0 0 1-1.048 1.06z" />
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -705,13 +735,12 @@ function HomePageContent() {
               </div>
             </section>
 
-            <aside 
+            <aside
               ref={settingsRef.ref as React.RefObject<HTMLElement>}
-              className={`rounded-[32px] border border-white/5 bg-[#020203]/80 p-4 md:p-6 transition-all duration-1000 delay-200 ${
-                settingsRef.isVisible 
-                  ? 'opacity-100 translate-y-0' 
-                  : 'opacity-0 translate-y-8'
-              }`}
+              className={`rounded-[32px] border border-white/5 bg-[#020203]/80 p-4 md:p-6 transition-all duration-1000 delay-200 ${settingsRef.isVisible
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-8'
+                }`}
               aria-label="Settings panel"
             >
               <header className="border-b border-white/5 pb-3 md:pb-4 text-xs font-semibold uppercase tracking-[0.3em] text-zinc-400">
@@ -727,9 +756,9 @@ function HomePageContent() {
                       description: 'Enter your Discord User ID',
                       defaultOpen: true,
                       content: (
-                        <UserIdInput 
-                          value={userId} 
-                          onChange={setUserId} 
+                        <UserIdInput
+                          value={userId}
+                          onChange={setUserId}
                           isInLantern={isInLantern}
                         />
                       ),
