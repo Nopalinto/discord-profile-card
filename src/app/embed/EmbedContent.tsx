@@ -20,7 +20,7 @@ export function EmbedContent() {
   const urlParams = useUrlParams();
   const userId = urlParams.id || searchParams.get('id') || DEFAULT_USER_ID;
   const isCentered = searchParams.get('center') === 'true' || searchParams.get('preview') === 'true';
-  
+
   // RAWG API key is now stored server-side and accessed via userId
   // No need to pass it to ProfileCard - it will fetch from server automatically
   const containerRef = useRef<HTMLDivElement>(null);
@@ -105,11 +105,11 @@ export function EmbedContent() {
     document.body.classList.add('is-embed');
     document.body.style.margin = '0';
     document.body.style.padding = '0';
-    document.body.style.background = 'transparent';
+    document.body.style.setProperty('background', 'transparent', 'important');
     document.body.style.overflow = 'visible';
-    document.documentElement.style.background = 'transparent';
+    document.documentElement.style.setProperty('background', 'transparent', 'important');
     document.documentElement.style.overflow = 'visible';
-    
+
     return () => {
       document.body.classList.remove('is-embed');
       document.body.style.margin = '';
@@ -129,14 +129,14 @@ export function EmbedContent() {
         <div className={styles.embedContainer}>
           <div className={styles.profileWrapper} ref={profileRef}>
             <ProfileCard
-            lanyard={profileData.lanyard}
-            dstn={profileData.dstn}
-            lantern={profileData.lantern}
-            history={profileData.history}
-            params={urlParams}
-            isVerified={profileData.isVerified}
-            updatedAt={profileData.updatedAt}
-          />
+              lanyard={profileData.lanyard}
+              dstn={profileData.dstn}
+              lantern={profileData.lantern}
+              history={profileData.history}
+              params={urlParams}
+              isVerified={profileData.isVerified}
+              updatedAt={profileData.updatedAt}
+            />
           </div>
         </div>
       </div>

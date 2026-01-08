@@ -66,6 +66,10 @@ body {
   position: relative;
 }
 
+body.is-embed {
+  background: transparent !important;
+}
+
 body.is-embed::before {
   display: none !important;
   content: none;
