@@ -15,6 +15,18 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
   
+  /* Transparent background for embed pages */
+  body.is-embed,
+  body.is-embed html {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+  
+  html:has(body.is-embed) {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+  
   html {
     @apply scroll-smooth;
   }

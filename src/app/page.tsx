@@ -163,7 +163,6 @@ function HomePageContent() {
   const [iframeHeight, setIframeHeight] = useState(600);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasSetColorFromApi, setHasSetColorFromApi] = useState(false);
-  const [previewBg, setPreviewBg] = useState<'dark' | 'light' | 'transparent'>('dark');
 
   const { lanyard, dstn, lantern, loading, isVerified, updatedAt } = useDiscordProfile(
     isValidDiscordId(userId) ? userId : null,
@@ -481,8 +480,8 @@ function HomePageContent() {
             <section
               ref={previewRef.ref as React.RefObject<HTMLElement>}
               className={`rounded-[32px] border border-white/5 bg-gradient-to-b from-[#050505] to-[#0d0d0f] p-4 md:p-6 shadow-[0_30px_45px_rgba(0,0,0,0.55)] transition-all duration-1000 ${previewRef.isVisible
-                ? 'opacity-100 translate-y-0'
-                : 'opacity-0 translate-y-8'
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 translate-y-8'
                 }`}
             >
               <div className="flex items-center justify-between">
@@ -490,42 +489,12 @@ function HomePageContent() {
                   <p className="text-xs uppercase tracking-[0.35em] text-zinc-400">Live Preview</p>
                   <h1 className="text-2xl font-semibold text-white">Discord Profile</h1>
                 </div>
-
-                {/* Preview Background Toggle */}
-                <div className="flex items-center gap-1 p-1 rounded-lg bg-white/5 border border-white/5">
-                  <button
-                    onClick={() => setPreviewBg('dark')}
-                    className={`p-1.5 rounded-md transition-all ${previewBg === 'dark' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                    title="Dark Background"
-                  >
-                    <div className="w-4 h-4 rounded-full bg-zinc-900 border border-zinc-600" />
-                  </button>
-                  <button
-                    onClick={() => setPreviewBg('light')}
-                    className={`p-1.5 rounded-md transition-all ${previewBg === 'light' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                    title="Light Background"
-                  >
-                    <div className="w-4 h-4 rounded-full bg-zinc-200 border border-zinc-400" />
-                  </button>
-                  <button
-                    onClick={() => setPreviewBg('transparent')}
-                    className={`p-1.5 rounded-md transition-all ${previewBg === 'transparent' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                    title="Transparent Background"
-                  >
-                    <div className="w-4 h-4 rounded-full border border-zinc-500 bg-[linear-gradient(45deg,#000000_25%,transparent_25%,transparent_75%,#000000_75%,#000000),linear-gradient(45deg,#000000_25%,transparent_25%,transparent_75%,#000000_75%,#000000)] bg-[length:6px_6px] bg-[position:0_0,3px_3px] opacity-50" />
-                  </button>
-                </div>
               </div>
               <div className="mt-4 md:mt-6 rounded-3xl border border-white/5 bg-[#0d0e13]/70 p-3 md:p-6">
-                <div className={`min-h-[400px] md:min-h-[520px] w-full rounded-2xl border transition-colors duration-300 p-3 md:p-6 ${previewBg === 'transparent'
-                  ? 'bg-transparent border-white/10'
-                  : previewBg === 'light'
-                    ? 'bg-[#f2f3f5] border-white/10'
-                    : 'bg-zinc-900/50 border-white/5'
-                  }`}>
+                <div className="min-h-[400px] md:min-h-[520px] w-full rounded-2xl border border-white/5 bg-zinc-900/50 p-3 md:p-6">
                   {!isValidDiscordId(userId) ? (
-                    <div className={`flex flex-col items-center justify-center h-full text-center text-sm ${previewBg === 'light' ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                      <div className={`mb-3 ${previewBg === 'light' ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                    <div className="flex flex-col items-center justify-center h-full text-center text-sm text-zinc-400">
+                      <div className="mb-3 text-zinc-500">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                           <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                           <path d="M2 17l10 5 10-5"></path>
@@ -738,8 +707,8 @@ function HomePageContent() {
             <aside
               ref={settingsRef.ref as React.RefObject<HTMLElement>}
               className={`rounded-[32px] border border-white/5 bg-[#020203]/80 p-4 md:p-6 transition-all duration-1000 delay-200 ${settingsRef.isVisible
-                ? 'opacity-100 translate-y-0'
-                : 'opacity-0 translate-y-8'
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 translate-y-8'
                 }`}
               aria-label="Settings panel"
             >
