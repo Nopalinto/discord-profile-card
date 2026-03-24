@@ -103,20 +103,26 @@ export function EmbedContent() {
   // Override body styles for embed page
   useEffect(() => {
     document.body.classList.add('is-embed');
+    document.documentElement.classList.add('is-embed');
     document.body.style.margin = '0';
     document.body.style.padding = '0';
     document.body.style.setProperty('background', 'transparent', 'important');
+    document.body.style.setProperty('background-color', 'transparent', 'important');
     document.body.style.overflow = 'visible';
     document.documentElement.style.setProperty('background', 'transparent', 'important');
+    document.documentElement.style.setProperty('background-color', 'transparent', 'important');
     document.documentElement.style.overflow = 'visible';
 
     return () => {
       document.body.classList.remove('is-embed');
+      document.documentElement.classList.remove('is-embed');
       document.body.style.margin = '';
       document.body.style.padding = '';
       document.body.style.background = '';
+      document.body.style.backgroundColor = '';
       document.body.style.overflow = '';
       document.documentElement.style.background = '';
+      document.documentElement.style.backgroundColor = '';
       document.documentElement.style.overflow = '';
     };
   }, []);

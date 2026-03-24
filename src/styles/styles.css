@@ -127,7 +127,8 @@ body::before {
 /* ---------- Discord outer container (matches Discord's structure) ---------- */
 .outer_c0bea0 {
   position: relative;
-  width: 380px;
+  max-width: 380px;
+  width: 100%;
   margin: 0 auto;
   border-radius: 20px;
   /* Discord's outline styling - highly visible border */
