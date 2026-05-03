@@ -1502,10 +1502,12 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
   align-items: center;
   gap: calc(6px * var(--scale));
   font-size: clamp(9px, calc(13px * var(--scale)), 20px);
-  font-weight: 100;
-  letter-spacing: .08em;
-  text-transform: full-width;
-  color: rgba(255, 255, 255, .8);
+  font-weight: 650;
+  line-height: 1.12;
+  letter-spacing: .01em;
+  color: rgba(255, 255, 255, .84);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 }
 
 .activity-header-right {
@@ -1518,6 +1520,8 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
   width: calc(14px * var(--scale));
   height: calc(14px * var(--scale));
   border-radius: 3px;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .activity-context-menu {
@@ -1582,6 +1586,47 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.discord-music-card .activity-card-body {
+  padding-bottom: calc(12px * var(--scale));
+}
+
+.discord-music-card .activity-content {
+  align-items: center;
+}
+
+.discord-music-card .activity-image {
+  overflow: visible;
+}
+
+.discord-music-card .activity-image > img:first-child {
+  border-radius: calc(8px * var(--scale));
+}
+
+.discord-music-card .activity-details {
+  min-height: clamp(36px, calc(64px * var(--scale)), 80px);
+  justify-content: center;
+}
+
+.discord-music-card .activity-title,
+.discord-music-card .activity-artist {
+  display: block;
+  white-space: nowrap;
+  text-align: left;
+  text-align-last: left;
+  text-overflow: ellipsis;
+}
+
+.discord-music-card .activity-progress-container {
+  width: 100%;
+  grid-template-columns: minmax(30px, auto) minmax(0, 1fr) minmax(30px, auto);
+  margin-top: calc(2px * var(--scale));
+  margin-bottom: 0;
+}
+
+.discord-music-card .activity-progress-bar {
+  min-width: 0;
 }
 
 .smallImageContainer_ef9ae7.activity-small-thumbnail {
@@ -1886,11 +1931,46 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
     padding-bottom: 0;
   }
 
+  .activity-card-header {
+    padding: 10px 14px 7px;
+  }
+
+  .activity-header-text {
+    max-width: calc(100% - 28px);
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.1;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  .activity-header-text .header-icon {
+    width: 13px;
+    height: 13px;
+  }
+
+  .activity-context-menu {
+    width: 24px;
+    height: 24px;
+  }
+
   .activity-content {
     flex-direction: row;
     align-items: flex-start;
     text-align: left;
     gap: calc(12px * var(--scale));
+  }
+
+  .discord-music-card .activity-card-body {
+    padding: 2px 14px 10px;
+  }
+
+  .discord-music-card .activity-content {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
   }
 
   .activity-image {
@@ -1900,11 +1980,30 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
     margin: 0;
   }
 
+  .discord-music-card .activity-image {
+    width: 58px;
+    height: 58px;
+    border-radius: 8px;
+  }
+
   .activity-small-thumbnail {
     width: calc(28px * var(--scale));
     height: calc(28px * var(--scale));
     right: calc(-6px * var(--scale));
     bottom: calc(-6px * var(--scale));
+  }
+
+  .discord-music-card .smallImageContainer_ef9ae7.activity-small-thumbnail {
+    width: 24px;
+    height: 24px;
+    right: -5px;
+    bottom: -5px;
+    border-width: 2px;
+  }
+
+  .discord-music-card .contentImage__42bf5.contentImage_ef9ae7 {
+    width: 20px;
+    height: 20px;
   }
 
   .activity-details {
@@ -1917,12 +2016,45 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
     text-align-last: left;
   }
 
+  .discord-music-card .activity-details {
+    min-height: 58px;
+    overflow: hidden;
+  }
+
   .activity-title,
   .activity-artist {
     text-align: left;
     text-align-last: left;
     width: 100%;
     -webkit-line-clamp: 1;
+  }
+
+  .discord-music-card .activity-title {
+    font-size: 15px;
+    line-height: 1.15;
+    margin-bottom: 3px;
+  }
+
+  .discord-music-card .activity-artist {
+    font-size: 13px;
+    line-height: 1.15;
+    margin-bottom: 2px;
+  }
+
+  .discord-music-card .activity-progress-container {
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .discord-music-card .activity-progress-time {
+    min-width: 30px;
+    font-size: 10px;
+    line-height: 1;
+    color: rgba(255, 255, 255, .82);
+  }
+
+  .discord-music-card .activity-progress-bar {
+    height: 4px;
   }
 
   .elapsed-row {
