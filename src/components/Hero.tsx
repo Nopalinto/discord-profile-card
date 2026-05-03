@@ -43,7 +43,7 @@ export function Hero({ onGetStarted }: HeroProps) {
 
   return (
     <section
-      className={`relative min-h-[85vh] flex flex-col items-center justify-center px-4 py-20 overflow-hidden transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'
+      className={`relative min-h-[85vh] flex flex-col items-center justify-center overflow-hidden px-3 py-16 transition-opacity duration-1000 sm:px-4 sm:py-20 ${isVisible ? 'opacity-100' : 'opacity-0'
         }`}
       aria-label="Hero section"
     >
@@ -59,7 +59,7 @@ export function Hero({ onGetStarted }: HeroProps) {
       <div className="relative z-10 max-w-6xl mx-auto text-center">
         {/* Main heading */}
         <h1
-          className={`text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 transition-all duration-1000 delay-200 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+          className={`mb-6 text-4xl font-bold leading-[1.08] text-white transition-all duration-1000 delay-200 sm:text-5xl md:text-6xl lg:text-7xl ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
             }`}
         >
           Create Beautiful
@@ -70,7 +70,7 @@ export function Hero({ onGetStarted }: HeroProps) {
 
         {/* Subtitle */}
         <p
-          className={`text-lg md:text-xl text-zinc-400 mb-12 max-w-2xl mx-auto transition-all duration-1000 delay-400 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+          className={`mx-auto mb-10 max-w-[32rem] text-base leading-7 text-zinc-400 transition-all duration-1000 delay-400 sm:mb-12 sm:text-lg md:text-xl ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
             }`}
         >
           Generate stunning Discord profile cards for your README, portfolio, or website.
@@ -80,7 +80,7 @@ export function Hero({ onGetStarted }: HeroProps) {
         {/* CTA Button */}
         <button
           onClick={onGetStarted}
-          className={`group relative px-8 py-4 bg-gradient-to-r from-[#5865F2] to-[#00d9ff] text-white font-semibold rounded-xl shadow-lg shadow-[#5865F2]/25 hover:shadow-xl hover:shadow-[#5865F2]/40 transition-all duration-300 hover:scale-105 mb-8 transition-all duration-1000 delay-600 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+          className={`group relative mb-8 rounded-xl bg-gradient-to-r from-[#5865F2] to-[#00d9ff] px-7 py-3.5 font-semibold text-white shadow-lg shadow-[#5865F2]/25 transition-all duration-1000 delay-600 hover:scale-105 hover:shadow-xl hover:shadow-[#5865F2]/40 sm:px-8 sm:py-4 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
             }`}
           aria-label="Get started with Discord profile generator"
         >

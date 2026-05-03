@@ -27,6 +27,7 @@ export function EmbedContent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(CARD_DESIGN_WIDTH);
+  const [profileHeight, setProfileHeight] = useState(0);
   const [profileData, setProfileData] = useState<{
     lanyard: LanyardResponse['data'] | null;
     dstn: DstnResponse | null;
@@ -64,17 +65,21 @@ export function EmbedContent() {
   // Track loading state based on whether we have any data
   const loading = !profileData.lanyard && !profileData.dstn && !profileData.lantern;
   const cardScale = Math.min(1, Math.max(0.72, (viewportWidth - 16) / CARD_DESIGN_WIDTH));
+  const scaledProfileHeight = profileHeight ? Math.ceil(profileHeight * cardScale) : undefined;
 
   const sendHeight = useCallback(() => {
     if (typeof window === 'undefined') return;
-    const cardHeight = profileRef.current?.getBoundingClientRect().height ?? 0;
-    const bodyHeight = containerRef.current?.getBoundingClientRect().height ?? 0;
-    const height = Math.max(cardHeight, bodyHeight, document.body.getBoundingClientRect().height);
+    const naturalHeight = profileRef.current?.scrollHeight ?? 0;
+    if (naturalHeight) {
+      setProfileHeight(prev => Math.abs(prev - naturalHeight) > 1 ? naturalHeight : prev);
+    }
+    const visualHeight = naturalHeight ? naturalHeight * cardScale : profileRef.current?.getBoundingClientRect().height ?? 0;
+    const height = Math.ceil(visualHeight + 2);
     if (!height) return;
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'discord-profile-embed-height', height }, window.location.origin);
     }
-  }, []);
+  }, [cardScale]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -149,12 +154,20 @@ export function EmbedContent() {
       <div className={`${styles.embedBody} ${isCentered ? styles.centered : ''}`} ref={containerRef}>
         <div
           className={styles.embedContainer}
-          style={{ width: `${CARD_DESIGN_WIDTH * cardScale}px` }}
+          style={{
+            display: 'block',
+            position: 'relative',
+            width: `${CARD_DESIGN_WIDTH * cardScale}px`,
+            height: scaledProfileHeight ? `${scaledProfileHeight}px` : undefined,
+          }}
         >
           <div
             className={styles.profileWrapper}
             ref={profileRef}
             style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: `${CARD_DESIGN_WIDTH}px`,
               transform: `scale(${cardScale})`,
               transformOrigin: 'top left',

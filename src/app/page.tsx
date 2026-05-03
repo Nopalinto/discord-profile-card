@@ -474,12 +474,12 @@ function HomePageContent() {
         Skip to main content
       </a>
       <Hero onGetStarted={scrollToPreview} />
-      <main id="main-content" className="min-h-screen w-full bg-[#09090B] py-10 px-4">
+      <main id="main-content" className="min-h-screen w-full bg-[#09090B] px-1 py-6 sm:px-4 md:py-10">
         <div className="mx-auto max-w-[1280px]">
           <div id="preview-section" className="grid gap-6 md:grid-cols-1 lg:grid-cols-[1.05fr_0.95fr]">
             <section
               ref={previewRef.ref as React.RefObject<HTMLElement>}
-              className={`rounded-[32px] border border-white/5 bg-gradient-to-b from-[#050505] to-[#0d0d0f] p-4 md:p-6 shadow-[0_30px_45px_rgba(0,0,0,0.55)] transition-all duration-1000 ${previewRef.isVisible
+              className={`rounded-[28px] border border-white/5 bg-gradient-to-b from-[#050505] to-[#0d0d0f] p-2 shadow-[0_30px_45px_rgba(0,0,0,0.55)] transition-all duration-1000 sm:rounded-[32px] sm:p-4 md:p-6 ${previewRef.isVisible
                   ? 'opacity-100 translate-y-0'
                   : 'opacity-0 translate-y-8'
                 }`}
@@ -490,8 +490,8 @@ function HomePageContent() {
                   <h1 className="text-2xl font-semibold text-white">Discord Profile</h1>
                 </div>
               </div>
-              <div className="mt-4 md:mt-6 rounded-3xl border border-white/5 bg-[#0d0e13]/70 p-2 sm:p-3 md:p-6">
-                <div className="min-h-[400px] md:min-h-[520px] w-full rounded-2xl border border-white/5 bg-zinc-900/50 p-2 sm:p-3 md:p-6">
+              <div className="mt-5 rounded-[26px] border border-white/5 bg-[#0d0e13]/70 p-1 sm:p-3 md:mt-6 md:rounded-3xl md:p-6">
+                <div className="flex min-h-[560px] w-full items-center justify-center overflow-hidden rounded-[22px] border border-white/5 bg-zinc-900/50 p-1 sm:min-h-[600px] sm:p-3 md:min-h-[520px] md:rounded-2xl md:p-6">
                   {!isValidDiscordId(userId) ? (
                     <div className="flex flex-col items-center justify-center h-full text-center text-sm text-zinc-400">
                       <div className="mb-3 text-zinc-500">
@@ -506,7 +506,7 @@ function HomePageContent() {
                   ) : loading ? (
                     <LoadingSkeleton />
                   ) : (
-                    <div className="h-full w-full">
+                    <div className="flex min-h-[520px] w-full items-center justify-center">
                       <iframe
                         onLoad={requestHeight}
                         ref={iframeRef}
@@ -514,9 +514,8 @@ function HomePageContent() {
                         src={previewUrl}
                         frameBorder="0"
                         scrolling="no"
-                        className="w-full border-0"
+                        className="w-full max-w-[380px] border-0"
                         style={{
-                          minHeight: '520px',
                           height: `${effectiveIframeHeight}px`,
                           background: 'transparent',
                         }}

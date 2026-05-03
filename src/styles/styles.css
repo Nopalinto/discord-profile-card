@@ -1793,13 +1793,13 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
   }
 }
 
-/* Mobile keeps the same Discord-card composition, only tightening scale/spacing. */
+/* Mobile keeps the desktop Discord-card composition; the embed scales the whole card. */
 @media (max-width: 480px) {
   :root {
-    --avatar-size: 72px;
+    --avatar-size: 80px;
     --avatar-border: 4px;
-    --activity-card-height: 136px;
-    --footer-top-gap: 8px;
+    --activity-card-height: 140px;
+    --footer-top-gap: 10px;
   }
 
   .outer_c0bea0 {
@@ -1808,24 +1808,24 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
   }
 
   .profile-banner {
-    height: 96px;
+    height: 105px;
   }
 
   .status-badge {
-    top: 10px;
-    right: 10px;
-    gap: 7px;
-    padding: 7px 10px;
+    top: 12px;
+    right: 12px;
+    gap: 8px;
+    padding: 8px 12px;
   }
 
   #status-text-badge {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .avatar-info-section {
-    gap: 12px;
-    padding: 14px 14px 12px;
-    margin-top: -34px;
+    gap: 16px;
+    padding: 16px 18px;
+    margin-top: -36px;
   }
 
   .profile-info {
@@ -1834,49 +1834,49 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
 
   .name-line {
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
 
   .display-name {
-    font-size: 18px;
+    font-size: 20px;
     min-width: 0;
   }
 
   .guild-tags-container {
-    gap: 4px;
+    gap: 6px;
     flex-shrink: 1;
     min-width: 0;
   }
 
   .guild-tag {
-    padding: 3px 7px;
-    font-size: 10px;
+    padding: 3px 8px;
+    font-size: 11px;
   }
 
   .username {
-    font-size: 12px;
-    line-height: 1.35;
+    font-size: 13px;
+    line-height: normal;
     overflow-wrap: anywhere;
   }
 
   .discord-badges-container {
-    gap: 5px;
+    gap: 6px;
   }
 
   .discord-badge {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
   }
 
   .bio-content {
-    font-size: 12px;
-    line-height: 1.35;
+    font-size: 13px;
+    line-height: 1.4;
   }
 
   .discord-activities-section.has-content,
   .discord-music-section.has-content {
-    margin-left: 14px;
-    margin-right: 14px;
+    margin-left: 18px;
+    margin-right: 18px;
   }
 
   .discord-activity-card,
@@ -1890,19 +1890,19 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
     flex-direction: row;
     align-items: flex-start;
     text-align: left;
-    gap: calc(10px * var(--scale));
+    gap: calc(12px * var(--scale));
   }
 
   .activity-image {
-    width: clamp(48px, calc(62px * var(--scale)), 64px);
-    height: clamp(48px, calc(62px * var(--scale)), 64px);
+    width: clamp(36px, calc(64px * var(--scale)), 80px);
+    height: clamp(36px, calc(64px * var(--scale)), 80px);
     border-radius: calc(8px * var(--scale));
     margin: 0;
   }
 
   .activity-small-thumbnail {
-    width: calc(26px * var(--scale));
-    height: calc(26px * var(--scale));
+    width: calc(28px * var(--scale));
+    height: calc(28px * var(--scale));
     right: calc(-6px * var(--scale));
     bottom: calc(-6px * var(--scale));
   }
