@@ -99,9 +99,18 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
   const hasElapsed = (!!activity.timestamps?.start || !!activity.timestamps?.end) && !hideTimestamp;
   // Show streak even for recent activities (when hideTimestamp is true)
   const showStreak = activity.name && (activity.type === 0 || activity.type === 5) && streak > 0;
+  const timelineStart = activity.timestamps?.start ?? 0;
+  const timelineEnd = activity.timestamps?.end ?? 0;
+  const hasTimeline = timelineStart > 0 && timelineEnd > 0;
+  const timelineDuration = hasTimeline
+    ? Math.max(1, timelineEnd - timelineStart)
+    : 0;
+  const timelineProgress = hasTimeline
+    ? Math.min(100, Math.max(0, ((Date.now() - timelineStart) / timelineDuration) * 100))
+    : 0;
 
   return (
-    <article className="discord-activity-card" id={`activity-${aid}`}>
+    <article className="discord-activity-card discord-rich-activity-card" id={`activity-${aid}`}>
       <header className="activity-card-header">
         <div className="activity-header-text">{activityHeader(activity.type)}</div>
         <div className="activity-header-right">
@@ -139,35 +148,35 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
             )}
           </div>
           <div className="activity-details">
-            <div className="activity-title">{escapeHtml(activity.name || 'Activity')}</div>
-            {activity.details && (
-              <div className="activity-artist">{escapeHtml(activity.details)}</div>
-            )}
-            {activity.state && (
-              <div className="activity-artist">{escapeHtml(activity.state)}</div>
-            )}
+            <div className="activity-text-stack">
+              <div className="activity-title activity-primary-title">{escapeHtml(activity.name || 'Activity')}</div>
+              {activity.details && (
+                <div className="activity-artist activity-detail-line">{escapeHtml(activity.details)}</div>
+              )}
+              {activity.state && (
+                <div className="activity-artist activity-state-line">{escapeHtml(activity.state)}</div>
+              )}
+            </div>
             {(hasElapsed || showStreak) && (
-              <div className="elapsed-row flex-wrap justify-start">
+              <div className="elapsed-row activity-elapsed-row">
                 {hasElapsed && (
                   // If both start and end exist -> Show Progress Bar
-                  activity.timestamps?.start && activity.timestamps?.end ? (
-                    <div className="w-full mt-1 mb-1">
-                      <div className="flex justify-between text-xs text-[#b5bac1] font-mono mb-1">
-                        <span>{elapsed}</span>
-                        <span>{msToHMS(Math.max(0, activity.timestamps.end - activity.timestamps.start))}</span>
-                      </div>
-                      <div className="h-1 bg-[#4e5058] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-white rounded-full transition-all duration-1000 ease-linear"
-                          style={{
-                            width: `${Math.min(100, Math.max(0, ((Date.now() - activity.timestamps.start) / (activity.timestamps.end - activity.timestamps.start)) * 100))}%`
-                          }}
-                        />
+                  hasTimeline ? (
+                    <div className="activity-session-progress">
+                      <div className="activity-progress-container">
+                        <div className="activity-progress-time">{elapsed}</div>
+                        <div className="activity-progress-bar">
+                          <div
+                            className="activity-progress-fill activity"
+                            style={{ width: `${timelineProgress}%` }}
+                          />
+                        </div>
+                        <div className="activity-progress-time">{msToHMS(timelineDuration)}</div>
                       </div>
                     </div>
                   ) : (
                     // Otherwise default behavior
-                    <div className="elapsed-pill">
+                    <div className="elapsed-pill activity-elapsed-pill">
                       <svg className="clock" viewBox="0 0 24 24" aria-hidden="true">
                         <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2"></circle>
                         <path d="M12 7v6l4 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
@@ -183,7 +192,7 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
                   )
                 )}
                 {showStreak && (
-                  <div className="elapsed-pill" id={`streak-pill-${aid}`}>
+                  <div className="elapsed-pill activity-streak-pill" id={`streak-pill-${aid}`}>
                     <svg className="flame" viewBox="0 0 24 24" aria-hidden="true">
                       <path fill="currentColor" d="m8.294 14-1.767 7.068c-.187.746.736 1.256 1.269.701L19.79 9.27A.75.75 0 0 0 19.25 8h-4.46l1.672-5.013A.75.75 0 0 0 15.75 2h-7a.75.75 0 0 0-.721.544l-3 10.5A.75.75 0 0 0 5.75 14h2.544Z" />
                     </svg>
@@ -198,4 +207,3 @@ export function ActivityCard({ activity, hideTimestamp = false, userId }: Activi
     </article>
   );
 }
-

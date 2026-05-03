@@ -1629,6 +1629,65 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
   min-width: 0;
 }
 
+.discord-rich-activity-card .activity-card-body {
+  padding-bottom: calc(10px * var(--scale));
+}
+
+.discord-rich-activity-card .activity-content {
+  align-items: center;
+}
+
+.discord-rich-activity-card .activity-image {
+  overflow: visible;
+}
+
+.activity-text-stack {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.discord-rich-activity-card .activity-title,
+.discord-rich-activity-card .activity-artist {
+  display: block;
+  white-space: nowrap;
+  text-align: left;
+  text-align-last: left;
+  text-overflow: ellipsis;
+  word-break: normal;
+  hyphens: manual;
+}
+
+.discord-rich-activity-card .activity-details {
+  justify-content: center;
+}
+
+.discord-rich-activity-card .activity-session-progress {
+  width: 100%;
+  margin-top: calc(4px * var(--scale));
+}
+
+.discord-rich-activity-card .activity-progress-container {
+  width: 100%;
+  grid-template-columns: minmax(30px, auto) minmax(0, 1fr) minmax(30px, auto);
+  margin: 0;
+}
+
+.discord-rich-activity-card .activity-progress-bar {
+  min-width: 0;
+}
+
+.activity-progress-fill.activity {
+  background: linear-gradient(90deg, #23a55a, #57f287);
+  box-shadow: 0 0 6px rgba(35, 165, 90, .38);
+}
+
+.activity-streak-pill {
+  background: rgba(237, 66, 69, .18);
+  border-color: rgba(237, 66, 69, .45);
+}
+
 .smallImageContainer_ef9ae7.activity-small-thumbnail {
   position: absolute;
   right: calc(-6px * var(--scale));
@@ -1973,6 +2032,17 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
     gap: 12px;
   }
 
+  .discord-rich-activity-card .activity-card-body {
+    padding: 2px 14px 10px;
+  }
+
+  .discord-rich-activity-card .activity-content {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+  }
+
   .activity-image {
     width: clamp(36px, calc(64px * var(--scale)), 80px);
     height: clamp(36px, calc(64px * var(--scale)), 80px);
@@ -1981,6 +2051,12 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
   }
 
   .discord-music-card .activity-image {
+    width: 58px;
+    height: 58px;
+    border-radius: 8px;
+  }
+
+  .discord-rich-activity-card .activity-image {
     width: 58px;
     height: 58px;
     border-radius: 8px;
@@ -2006,6 +2082,19 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
     height: 20px;
   }
 
+  .discord-rich-activity-card .smallImageContainer_ef9ae7.activity-small-thumbnail {
+    width: 24px;
+    height: 24px;
+    right: -5px;
+    bottom: -5px;
+    border-width: 2px;
+  }
+
+  .discord-rich-activity-card .contentImage__42bf5.contentImage_ef9ae7 {
+    width: 20px;
+    height: 20px;
+  }
+
   .activity-details {
     min-width: 0;
     width: 100%;
@@ -2017,6 +2106,11 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
   }
 
   .discord-music-card .activity-details {
+    min-height: 58px;
+    overflow: hidden;
+  }
+
+  .discord-rich-activity-card .activity-details {
     min-height: 58px;
     overflow: hidden;
   }
@@ -2041,7 +2135,28 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
     margin-bottom: 2px;
   }
 
+  .discord-rich-activity-card .activity-title {
+    font-size: 15px;
+    line-height: 1.15;
+    margin-bottom: 3px;
+  }
+
+  .discord-rich-activity-card .activity-artist {
+    font-size: 13px;
+    line-height: 1.12;
+    margin-bottom: 2px;
+  }
+
+  .discord-rich-activity-card .activity-state-line {
+    margin-bottom: 4px;
+  }
+
   .discord-music-card .activity-progress-container {
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .discord-rich-activity-card .activity-progress-container {
     gap: 8px;
     margin-top: 4px;
   }
@@ -2053,13 +2168,56 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
     color: rgba(255, 255, 255, .82);
   }
 
+  .discord-rich-activity-card .activity-progress-time {
+    min-width: 30px;
+    font-size: 10px;
+    line-height: 1;
+    color: rgba(255, 255, 255, .82);
+  }
+
   .discord-music-card .activity-progress-bar {
+    height: 4px;
+  }
+
+  .discord-rich-activity-card .activity-progress-bar {
     height: 4px;
   }
 
   .elapsed-row {
     justify-content: flex-start;
     width: 100%;
+  }
+
+  .discord-rich-activity-card .activity-elapsed-row {
+    gap: 6px;
+    flex-wrap: nowrap;
+    margin-top: 3px;
+    overflow: hidden;
+  }
+
+  .discord-rich-activity-card .elapsed-pill {
+    min-width: 0;
+    min-height: 18px;
+    max-width: calc(50% - 3px);
+    gap: 4px;
+    padding: 3px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0;
+  }
+
+  .discord-rich-activity-card .elapsed-pill span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .discord-rich-activity-card .elapsed-pill .clock,
+  .discord-rich-activity-card .elapsed-pill .flame {
+    width: 11px;
+    height: 11px;
+    flex: 0 0 11px;
   }
 }
 
