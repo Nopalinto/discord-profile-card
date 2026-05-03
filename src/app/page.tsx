@@ -490,8 +490,8 @@ function HomePageContent() {
                   <h1 className="text-2xl font-semibold text-white">Discord Profile</h1>
                 </div>
               </div>
-              <div className="mt-4 md:mt-6 rounded-3xl border border-white/5 bg-[#0d0e13]/70 p-3 md:p-6">
-                <div className="min-h-[400px] md:min-h-[520px] w-full rounded-2xl border border-white/5 bg-zinc-900/50 p-3 md:p-6">
+              <div className="mt-4 md:mt-6 rounded-3xl border border-white/5 bg-[#0d0e13]/70 p-2 sm:p-3 md:p-6">
+                <div className="min-h-[400px] md:min-h-[520px] w-full rounded-2xl border border-white/5 bg-zinc-900/50 p-2 sm:p-3 md:p-6">
                   {!isValidDiscordId(userId) ? (
                     <div className="flex flex-col items-center justify-center h-full text-center text-sm text-zinc-400">
                       <div className="mb-3 text-zinc-500">

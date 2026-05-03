@@ -1793,60 +1793,140 @@ Based on Discord's .defaultColor__4bd52 {.css (lines 19159-19500)
   }
 }
 
-/* Mobile optimizations for Activity Cards */
+/* Mobile keeps the same Discord-card composition, only tightening scale/spacing. */
 @media (max-width: 480px) {
+  :root {
+    --avatar-size: 72px;
+    --avatar-border: 4px;
+    --activity-card-height: 136px;
+    --footer-top-gap: 8px;
+  }
+
   .outer_c0bea0 {
-    width: calc(100vw - 20px);
+    width: 100%;
     max-width: 380px;
+  }
+
+  .profile-banner {
+    height: 96px;
+  }
+
+  .status-badge {
+    top: 10px;
+    right: 10px;
+    gap: 7px;
+    padding: 7px 10px;
+  }
+
+  #status-text-badge {
+    font-size: 11px;
+  }
+
+  .avatar-info-section {
+    gap: 12px;
+    padding: 14px 14px 12px;
+    margin-top: -34px;
+  }
+
+  .profile-info {
+    min-width: 0;
+  }
+
+  .name-line {
+    align-items: center;
+    gap: 6px;
+  }
+
+  .display-name {
+    font-size: 18px;
+    min-width: 0;
+  }
+
+  .guild-tags-container {
+    gap: 4px;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .guild-tag {
+    padding: 3px 7px;
+    font-size: 10px;
+  }
+
+  .username {
+    font-size: 12px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .discord-badges-container {
+    gap: 5px;
+  }
+
+  .discord-badge {
+    width: 18px;
+    height: 18px;
+  }
+
+  .bio-content {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .discord-activities-section.has-content,
+  .discord-music-section.has-content {
+    margin-left: 14px;
+    margin-right: 14px;
   }
 
   .discord-activity-card,
   .discord-music-card {
-    height: auto;
-    min-height: 140px;
-    padding-bottom: 14px;
+    height: var(--activity-card-height);
+    min-height: 0;
+    padding-bottom: 0;
   }
 
   .activity-content {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 10px;
+    flex-direction: row;
+    align-items: flex-start;
+    text-align: left;
+    gap: calc(10px * var(--scale));
   }
 
   .activity-image {
-    width: 52px !important;
-    height: 52px !important;
-    border-radius: 10px;
-    margin: 0 auto;
+    width: clamp(48px, calc(62px * var(--scale)), 64px);
+    height: clamp(48px, calc(62px * var(--scale)), 64px);
+    border-radius: calc(8px * var(--scale));
+    margin: 0;
   }
 
   .activity-small-thumbnail {
-    width: 20px !important;
-    height: 20px !important;
-    right: -4px !important;
-    bottom: -4px !important;
+    width: calc(26px * var(--scale));
+    height: calc(26px * var(--scale));
+    right: calc(-6px * var(--scale));
+    bottom: calc(-6px * var(--scale));
   }
 
   .activity-details {
-    text-align: center;
-    text-align-last: center;
+    min-width: 0;
     width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
+    text-align: left;
+    text-align-last: left;
   }
 
   .activity-title,
   .activity-artist {
-    text-align: center;
-    text-align-last: center;
+    text-align: left;
+    text-align-last: left;
     width: 100%;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
   }
 
   .elapsed-row {
-    justify-content: center;
+    justify-content: flex-start;
     width: 100%;
   }
 }

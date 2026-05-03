@@ -14,6 +14,7 @@ import type { LanternResponse } from '@/lib/types/lantern';
 import styles from './page.module.css';
 
 const DEFAULT_USER_ID = '915480322328649758';
+const CARD_DESIGN_WIDTH = 380;
 
 export function EmbedContent() {
   const searchParams = useSearchParams();
@@ -25,6 +26,7 @@ export function EmbedContent() {
   // No need to pass it to ProfileCard - it will fetch from server automatically
   const containerRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const [viewportWidth, setViewportWidth] = useState(CARD_DESIGN_WIDTH);
   const [profileData, setProfileData] = useState<{
     lanyard: LanyardResponse['data'] | null;
     dstn: DstnResponse | null;
@@ -61,16 +63,29 @@ export function EmbedContent() {
 
   // Track loading state based on whether we have any data
   const loading = !profileData.lanyard && !profileData.dstn && !profileData.lantern;
+  const cardScale = Math.min(1, Math.max(0.72, (viewportWidth - 16) / CARD_DESIGN_WIDTH));
 
   const sendHeight = useCallback(() => {
     if (typeof window === 'undefined') return;
-    const cardHeight = profileRef.current?.scrollHeight ?? 0;
-    const bodyHeight = containerRef.current?.scrollHeight ?? 0;
-    const height = Math.max(cardHeight, bodyHeight, document.body.scrollHeight);
+    const cardHeight = profileRef.current?.getBoundingClientRect().height ?? 0;
+    const bodyHeight = containerRef.current?.getBoundingClientRect().height ?? 0;
+    const height = Math.max(cardHeight, bodyHeight, document.body.getBoundingClientRect().height);
     if (!height) return;
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'discord-profile-embed-height', height }, window.location.origin);
     }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const updateViewportWidth = () => {
+      setViewportWidth(Math.max(0, window.innerWidth));
+    };
+
+    updateViewportWidth();
+    window.addEventListener('resize', updateViewportWidth);
+    return () => window.removeEventListener('resize', updateViewportWidth);
   }, []);
 
   useEffect(() => {
@@ -86,7 +101,7 @@ export function EmbedContent() {
       observer?.disconnect();
       window.removeEventListener('resize', sendHeight);
     };
-  }, [profileData, sendHeight]);
+  }, [profileData, cardScale, sendHeight]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -132,8 +147,19 @@ export function EmbedContent() {
       <SvgMasks />
       <BadgeTooltip />
       <div className={`${styles.embedBody} ${isCentered ? styles.centered : ''}`} ref={containerRef}>
-        <div className={styles.embedContainer}>
-          <div className={styles.profileWrapper} ref={profileRef}>
+        <div
+          className={styles.embedContainer}
+          style={{ width: `${CARD_DESIGN_WIDTH * cardScale}px` }}
+        >
+          <div
+            className={styles.profileWrapper}
+            ref={profileRef}
+            style={{
+              width: `${CARD_DESIGN_WIDTH}px`,
+              transform: `scale(${cardScale})`,
+              transformOrigin: 'top left',
+            }}
+          >
             <ProfileCard
               lanyard={profileData.lanyard}
               dstn={profileData.dstn}
