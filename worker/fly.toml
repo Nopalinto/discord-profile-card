@@ -1,0 +1,19 @@
+# Fly.io config for the background worker (Lanyard -> Redis sync)
+# Deploy from the repo root with:  fly deploy --config worker/fly.toml --dockerfile worker/Dockerfile
+
+app = "discord-card-worker"
+primary_region = "sin"   # change to your closest region (sin=Singapore, iad=US East, fra=Frankfurt)
+
+[build]
+  dockerfile = "Dockerfile"
+
+# The worker is a background process with no public ports.
+# It connects OUT to Lanyard (websocket) and Redis, so no [http_service] is needed.
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+
+# Restart automatically if the process ever crashes.
+[processes]
+  app = "node lanyard-redis-sync.mjs"

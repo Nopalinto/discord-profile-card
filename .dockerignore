@@ -1,0 +1,11 @@
+.git
+.next
+out
+node_modules
+build
+*.log
+.env*.local
+.vercel
+.agents
+.kilo
+.cursor

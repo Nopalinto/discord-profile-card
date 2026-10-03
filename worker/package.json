@@ -1,0 +1,19 @@
+{
+  "name": "discord-profile-card-worker",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Background worker: syncs Lanyard presence into Redis history/streaks.",
+  "type": "module",
+  "main": "lanyard-redis-sync.mjs",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "start": "node lanyard-redis-sync.mjs",
+    "worker": "node lanyard-redis-sync.mjs"
+  },
+  "dependencies": {
+    "redis": "^5.10.0",
+    "ws": "^8.18.3"
+  }
+}
