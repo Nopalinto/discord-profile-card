@@ -6,21 +6,48 @@ import { sanitizeExternalURL, escapeHtml } from '@/lib/utils/validation';
 import { resolveAssetImage } from '@/lib/utils/profile';
 import { msToMMSS } from '@/lib/utils/formatting';
 
+type MusicService = 'spotify' | 'apple' | 'tidal' | 'youtube' | 'music';
+
 interface MusicCardProps {
   spotify?: LanyardSpotify | null;
   activity?: LanyardActivity;
-  type?: 'spotify' | 'apple' | 'tidal';
+  type?: MusicService;
   hideTimestamp?: boolean;
 }
 
 const ICON_SPOTIFY = 'https://media.discordapp.net/external/SBL-oQIuwzsSwlKo6e2_hIFvUrQolyZmCjxmbMVinn4/https/live.musicpresence.app/v3/icons/spotify/discord-small-image.f4d35e7aa231.png';
 const ICON_APPLE = 'https://www.pngarts.com/files/8/Apple-Music-Logo-PNG-Photo.png';
 const ICON_TIDAL = 'https://media.discordapp.net/external/2jxHB9nItvOmWpcwXFv-wjFM_aChrDpu86tCHAZo9Cg/https/live.musicpresence.app/v3/icons/tidal/discord-small-image.1b03069cc4c3.png';
+const ICON_YOUTUBE = 'https://media.discordapp.net/external/SBL-oQIuwzsSwlKo6e2_hIFvUrQolyZmCjxmbMVinn4/https/live.musicpresence.app/v3/icons/youtube-music/discord-small-image.png';
+const ICON_MUSIC = 'https://media.discordapp.net/external/SBL-oQIuwzsSwlKo6e2_hIFvUrQolyZmCjxmbMVinn4/https/live.musicpresence.app/v3/icons/spotify/discord-small-image.f4d35e7aa231.png';
 
-export function MusicCard({ spotify, activity, type = 'spotify', hideTimestamp = false }: MusicCardProps) {
+const SERVICE_META: Record<MusicService, { icon: string; name: string; text: string }> = {
+  spotify: { icon: ICON_SPOTIFY, name: 'Spotify', text: 'Listening on Spotify' },
+  apple: { icon: ICON_APPLE, name: 'Apple Music', text: 'Listening to Apple Music' },
+  tidal: { icon: ICON_TIDAL, name: 'TIDAL', text: 'Listening to TIDAL' },
+  youtube: { icon: ICON_YOUTUBE, name: 'YouTube Music', text: 'Listening to YouTube Music' },
+  music: { icon: ICON_MUSIC, name: 'Music', text: 'Listening to music' },
+};
+
+// Infer a service from the activity name when type isn't explicitly provided.
+function inferService(activity?: LanyardActivity): MusicService {
+  const name = activity?.name?.toLowerCase() || '';
+  if (name.includes('spotify')) return 'spotify';
+  if (name.includes('apple music')) return 'apple';
+  if (name.includes('tidal')) return 'tidal';
+  if (name.includes('youtube')) return 'youtube';
+  return 'music';
+}
+
+export function MusicCard({ spotify, activity, type, hideTimestamp = false }: MusicCardProps) {
   const [progress, setProgress] = useState(0);
   const [elapsed, setElapsed] = useState('');
   const [total, setTotal] = useState('');
+  const [artFailed, setArtFailed] = useState(false);
+
+  // Resolve which service we're showing (explicit type wins, else infer).
+  const service: MusicService = type ?? (spotify ? 'spotify' : inferService(activity));
+  const meta = SERVICE_META[service] || SERVICE_META.music;
 
   let title = '';
   let artist = '';
@@ -37,7 +64,7 @@ export function MusicCard({ spotify, activity, type = 'spotify', hideTimestamp =
     start = spotify.timestamps?.start ?? null;
     end = spotify.timestamps?.end ?? null;
   } else if (activity) {
-    title = activity.details || activity.name || (type === 'apple' ? 'Apple Music' : type === 'tidal' ? 'TIDAL' : 'Spotify');
+    title = activity.details || activity.name || meta.name;
     artist = activity.state || '';
     album = activity.assets?.large_text || '';
     art = resolveAssetImage(activity.application_id, activity.assets?.large_image) || '';
@@ -69,9 +96,10 @@ export function MusicCard({ spotify, activity, type = 'spotify', hideTimestamp =
     return () => clearInterval(interval);
   }, [start, end, hideTimestamp]);
 
-  const icon = type === 'apple' ? ICON_APPLE : type === 'tidal' ? ICON_TIDAL : ICON_SPOTIFY;
-  const serviceName = type === 'apple' ? 'Apple Music' : type === 'tidal' ? 'TIDAL' : 'Spotify';
-  const serviceText = type === 'apple' ? 'Listening to Apple Music' : type === 'tidal' ? 'Listening to TIDAL' : 'Listening on Spotify';
+  const icon = meta.icon;
+  const serviceName = meta.name;
+  const serviceText = meta.text;
+  const showArt = art && !artFailed;
 
   return (
     <article className="discord-activity-card discord-music-card">
@@ -94,8 +122,9 @@ export function MusicCard({ spotify, activity, type = 'spotify', hideTimestamp =
           <div className="activity-image">
             <img
               alt={escapeHtml(title || serviceName) || 'Album art'}
-              src={sanitizeExternalURL(art) || sanitizeExternalURL(icon)}
+              src={showArt ? sanitizeExternalURL(art) : sanitizeExternalURL(icon)}
               data-tip={escapeHtml(title || serviceName)}
+              onError={() => setArtFailed(true)}
             />
             <div className="smallImageContainer_ef9ae7 activity-small-thumbnail" data-tip={serviceName}>
               <img className="contentImage__42bf5 contentImage_ef9ae7" alt={serviceName} src={sanitizeExternalURL(icon)} />
@@ -111,7 +140,7 @@ export function MusicCard({ spotify, activity, type = 'spotify', hideTimestamp =
                 <div className="activity-progress-time">{elapsed}</div>
                 <div className="activity-progress-bar">
                   <div
-                    className={`activity-progress-fill ${type}`}
+                    className={`activity-progress-fill ${service}`}
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>

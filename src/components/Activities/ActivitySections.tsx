@@ -33,8 +33,9 @@ function ActivitySectionsComponent({
   const isOffline = status === 'offline';
 
   // Process history data if available
+  const MUSIC_TYPES = ['spotify', 'apple', 'tidal', 'youtube', 'music'];
   const historyActivities = history?.filter(h => h.type === 'activity') || [];
-  const historySongs = history?.filter(h => h.type === 'spotify' || h.type === 'apple' || h.type === 'tidal') || [];
+  const historySongs = history?.filter(h => MUSIC_TYPES.includes(h.type)) || [];
 
   // Sort activities by priority
   const sortedActivities = sortActivitiesByPriority(activities);
@@ -69,15 +70,11 @@ function ActivitySectionsComponent({
             {!hideSpotify && spotify && (
               <MusicCard spotify={spotify} />
             )}
-            {!hideSpotify && listeningActivities.map((activity, index) => {
-              if (activity.name?.toLowerCase().includes('apple')) {
-                return <MusicCard key={`apple-${index}`} activity={activity} type="apple" />;
-              }
-              if (activity.name?.toLowerCase().includes('tidal')) {
-                return <MusicCard key={`tidal-${index}`} activity={activity} type="tidal" />;
-              }
-              return null;
-            })}
+            {!hideSpotify && listeningActivities.map((activity, index) => (
+              // Render any "Listening" (type 2) activity — Spotify, Apple Music,
+              // TIDAL, YouTube Music, Deezer, etc. MusicCard infers the service.
+              <MusicCard key={`listen-${activity.application_id || index}`} activity={activity} />
+            ))}
           </div>
         </section>
       )}
@@ -141,12 +138,16 @@ function ActivitySectionsComponent({
                 <MusicCard
                   key={`hist-song-${index}`}
                   type={item.type}
-                  spotify={{
-                    song: item.name,
-                    artist: item.details,
-                    album_art_url: item.image,
-                    album: item.metadata?.album,
-                    track_id: item.metadata?.track_id
+                  activity={{
+                    name: item.name,
+                    details: item.name,
+                    state: item.details,
+                    type: 2,
+                    application_id: item.metadata?.application_id,
+                    assets: {
+                      large_image: item.image,
+                      large_text: item.metadata?.album,
+                    }
                   } as any}
                   hideTimestamp={true}
                 />

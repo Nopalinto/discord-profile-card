@@ -10,8 +10,12 @@ import { sanitizeExternalURL } from './validation';
 export function resolveAssetImage(appId: string | undefined, key: string | undefined, externalUrl?: string): string {
   if (key === 'external' && externalUrl) return externalUrl;
   if (!key) return '';
-  if (String(key).startsWith('mp:')) return `https://media.discordapp.net/${String(key).slice(3)}`;
-  if (appId && /^[0-9]+$/.test(String(appId))) return `https://cdn.discordapp.com/app-assets/${appId}/${key}.png`;
+  const strKey = String(key);
+  // Already a fully-qualified URL (e.g. stored in listening history) — use as-is.
+  if (/^https?:\/\//.test(strKey)) return strKey;
+  if (strKey.startsWith('mp:')) return `https://media.discordapp.net/${strKey.slice(3)}`;
+  if (strKey.startsWith('spotify:')) return `https://i.scdn.co/image/${strKey.slice(8)}`;
+  if (appId && /^[0-9]+$/.test(String(appId))) return `https://cdn.discordapp.com/app-assets/${appId}/${strKey}.png`;
   return '';
 }
 
