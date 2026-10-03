@@ -16,6 +16,7 @@ export interface UrlParams {
   primaryColor?: string;
   accentColor?: string;
   bannerUrl?: string;
+  bannerColor?: string;
   hideAppId?: string[];
   displayNameFont?: string;
   displayNameEffect?: string;
@@ -71,6 +72,9 @@ export function parseUrlParams(searchParams: URLSearchParams): UrlParams {
     }
   }
 
+  const bannerColor = searchParams.get('bannerColor');
+  if (bannerColor) params.bannerColor = bannerColor;
+
   const hideAppId = searchParams.get('ignoreAppId');
   if (hideAppId) {
     params.hideAppId = hideAppId.split(',').filter(Boolean);
@@ -120,6 +124,7 @@ export function buildUrl(baseUrl: string, params: UrlParams): string {
   if (params.primaryColor) url.searchParams.set('primaryColor', params.primaryColor);
   if (params.accentColor) url.searchParams.set('accentColor', params.accentColor);
   if (params.bannerUrl) url.searchParams.set('bannerUrl', params.bannerUrl);
+  if (params.bannerColor) url.searchParams.set('bannerColor', params.bannerColor);
   if (params.hideAppId && params.hideAppId.length > 0) {
     url.searchParams.set('ignoreAppId', params.hideAppId.join(','));
   }

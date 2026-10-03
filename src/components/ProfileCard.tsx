@@ -556,10 +556,39 @@ export function ProfileCard({ lanyard, dstn, lantern, history, params, isVerifie
   const customStatus = useMemo(() => getCustomStatus(lanyard), [lanyard]);
   const bannerUrl = useMemo(() => getBannerUrl(lanyard, dstn, params?.bannerUrl), [lanyard, dstn, params?.bannerUrl]);
   const bannerColor = useMemo(() => {
-    if (dstnUser?.banner_color) return dstnUser.banner_color;
-    if (dstnUser?.accent_color) return `#${dstnUser.accent_color.toString(16).padStart(6, '0')}`;
-    return null;
-  }, [dstnUser]);
+    // Normalize a color value to a `#rrggbb` CSS color. Accepts:
+    //  - "#c9a06a" / "c9a06a" (hex string, with or without '#')
+    //  - 13185130 (integer accent/theme color)
+    const toHex = (val: string | number | undefined | null): string | null => {
+      if (val === undefined || val === null) return null;
+      if (typeof val === 'number') {
+        if (!isFinite(val) || val < 0) return null;
+        return `#${val.toString(16).padStart(6, '0').slice(-6)}`;
+      }
+      const s = String(val).trim();
+      if (!s) return null;
+      const hex = s.startsWith('#') ? s.slice(1) : s;
+      return /^[0-9a-fA-F]{6}$/.test(hex) ? `#${hex}` : (/^[0-9a-fA-F]{3}$/.test(hex) ? `#${hex}` : null);
+    };
+
+    // Explicit override via URL param wins over everything (lets users match
+    // a profile color that the Discord API doesn't expose, e.g. non-Nitro colors).
+    const fromParam = toHex(params?.bannerColor);
+    if (fromParam) return fromParam;
+
+    // Fallback chain, mirroring Discord: banner_color -> accent_color -> theme primary.
+    const fromBanner = toHex(dstnUser?.banner_color);
+    if (fromBanner) return fromBanner;
+    const fromAccent = toHex(dstnUser?.accent_color);
+    if (fromAccent) return fromAccent;
+    const themeColors = dstn?.user_profile?.theme_colors;
+    if (Array.isArray(themeColors) && themeColors.length > 0) {
+      const fromTheme = toHex(themeColors[0]);
+      if (fromTheme) return fromTheme;
+    }
+    // Discord's default brand color when the user has no banner/color set.
+    return '#5865F2';
+  }, [dstnUser, dstn, params?.bannerColor]);
   const lastSeen = useMemo(() => formatLastSeenTime(lantern), [lantern]);
 
   // Get display name color (from params or accent color from theme)

@@ -143,6 +143,11 @@ function HomePageContent() {
     return parsedUrlParams.accentColor ? `#${parsedUrlParams.accentColor}` : '#fe80c0';
   });
   const [bannerUrl, setBannerUrl] = useState(() => parsedUrlParams.bannerUrl || '');
+  const [bannerColor, setBannerColor] = useState(() => {
+    const value = parsedUrlParams.bannerColor || '';
+    if (!value) return '';
+    return value.startsWith('#') ? value : `#${value}`;
+  });
   const [imageWidth, setImageWidth] = useState(512);
   const [displayNameFont, setDisplayNameFont] = useState(() => parsedUrlParams.displayNameFont || 'gg-sans');
   const [displayNameEffect, setDisplayNameEffect] = useState(() => parsedUrlParams.displayNameEffect || 'solid');
@@ -320,6 +325,7 @@ function HomePageContent() {
     primaryColor: colorScheme === 'custom' ? primaryColor.replace('#', '') : undefined,
     accentColor: colorScheme === 'custom' ? accentColor.replace('#', '') : undefined,
     bannerUrl: bannerUrl || undefined,
+    bannerColor: bannerColor ? bannerColor.replace('#', '') : undefined,
     displayNameFont,
     displayNameEffect,
     displayNameColor: displayNameEffect === 'gradient'
@@ -327,7 +333,7 @@ function HomePageContent() {
       : (displayNameColor.startsWith('linear-gradient') ? displayNameColor : displayNameColor.replace('#', '')),
     displayNameGradientStart: displayNameEffect === 'gradient' ? displayNameGradientStart.replace('#', '') : undefined,
     displayNameGradientEnd: displayNameEffect === 'gradient' ? displayNameGradientEnd.replace('#', '') : undefined,
-  }), [userId, displayOptions, colorScheme, primaryColor, accentColor, bannerUrl, displayNameFont, displayNameEffect, displayNameColor, displayNameGradientStart, displayNameGradientEnd]);
+  }), [userId, displayOptions, colorScheme, primaryColor, accentColor, bannerUrl, bannerColor, displayNameFont, displayNameEffect, displayNameColor, displayNameGradientStart, displayNameGradientEnd]);
 
   const previewUrl = useMemo(() => {
     if (!isValidDiscordId(userId)) return '';
@@ -366,6 +372,8 @@ function HomePageContent() {
   const handleImageOptionChange = (key: string, value: string | number) => {
     if (key === 'bannerUrl') {
       setBannerUrl(String(value));
+    } else if (key === 'bannerColor') {
+      setBannerColor(String(value));
     } else if (key === 'imageWidth') {
       setImageWidth(Number(value));
     }
@@ -775,6 +783,7 @@ function HomePageContent() {
                           <div className="mt-3">
                             <ImageOptions
                               bannerUrl={bannerUrl}
+                              bannerColor={bannerColor}
                               imageWidth={imageWidth}
                               onChange={handleImageOptionChange}
                             />

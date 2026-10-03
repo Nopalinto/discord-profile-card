@@ -83,7 +83,7 @@ function ProfileHeaderComponent({
   return (
     <>
       <div
-        className={`profile-banner ${bannerUrl ? 'has-banner' : ''}`}
+        className={`profile-banner ${bannerUrl ? 'has-banner' : ''} ${!bannerUrl && bannerColor ? 'has-color' : ''}`}
         id="profile-banner"
         style={
           bannerUrl 
@@ -93,7 +93,7 @@ function ProfileHeaderComponent({
               : undefined
         }
       >
-        <div className="banner-overlay"></div>
+        {bannerUrl && <div className="banner-overlay"></div>}
         <div className="status-badge">
           <div className={`status-dot ${status}`} aria-label="status">
             <svg viewBox="0 0 16 16" className="status-mask online">
